@@ -1,5 +1,35 @@
+# Secrets
 .env
-CLAUDE.md
-instructions/
 seed.sh
+
+# AI assistant config (personal/team-specific)
+CLAUDE.md
 AGENTS.md
+instructions/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Tools
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node (widget)
+node_modules/
+.next/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
