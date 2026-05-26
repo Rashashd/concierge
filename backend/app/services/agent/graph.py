@@ -1,0 +1,82 @@
+from typing import Any
+
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langgraph.graph import END, StateGraph
+from typing_extensions import TypedDict
+
+from app.schemas import TenantContext
+from app.services.agent.nodes import llm_node, tool_node
+
+MAX_AGENT_STEPS = 4
+
+
+class _GraphState(TypedDict):
+    messages: list[BaseMessage]
+    tenant_context: TenantContext
+    conversation_id: str | None
+
+
+def _next_step(state: _GraphState) -> str:
+    messages = state["messages"]
+    last_message = messages[-1]
+    if len(messages) >= MAX_AGENT_STEPS:
+        return "final"
+    if isinstance(last_message, AIMessage) and last_message.tool_calls:
+        return "tools"
+    return "final"
+
+
+def build_agent_graph(llm: Any) -> Any:
+    graph = StateGraph(_GraphState)
+
+    async def call_llm(state: _GraphState) -> dict[str, list[BaseMessage]]:
+        return await llm_node(state, llm)
+
+    graph.add_node("llm", call_llm)
+    graph.add_node("tools", tool_node)
+    graph.add_node("final", lambda state: state)
+    graph.set_entry_point("llm")
+    graph.add_conditional_edges("llm", _next_step, {"tools": "tools", "final": "final"})
+    graph.add_edge("tools", "llm")
+    graph.add_edge("final", END)
+    return graph.compile()
+
+
+async def run_agent_turn(
+    llm: Any,
+    tenant_context: TenantContext,
+    message: str,
+    conversation_id: str | None,
+) -> str:
+    state: _GraphState = {
+        "messages": [
+            SystemMessage(
+                content=(
+                    "You are Concierge. Use rag_search for tenant CMS questions. "
+                    "Never ask for or invent tenant IDs."
+                )
+            ),
+            HumanMessage(content=message),
+        ],
+        "tenant_context": tenant_context,
+        "conversation_id": conversation_id,
+    }
+
+    for _ in range(MAX_AGENT_STEPS):
+        state["messages"] = (await llm_node(state, llm))["messages"]
+        last_message = state["messages"][-1]
+        if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
+            break
+        state["messages"] = (await tool_node(state))["messages"]
+
+    return _final_text(state["messages"])
+
+
+def _final_text(messages: list[BaseMessage]) -> str:
+    for message in reversed(messages):
+        if isinstance(message, AIMessage):
+            content = message.content
+            if isinstance(content, str):
+                return content
+            return str(content)
+    return "I could not generate a response."
