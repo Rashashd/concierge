@@ -24,3 +24,19 @@ def verify_widget_token(token: str, secret: str) -> TenantContext:
         )
     except (InvalidTokenError, KeyError, TypeError, ValueError, ValidationError) as exc:
         raise InvalidWidgetTokenError("Invalid widget token") from exc
+
+
+def issue_widget_token(
+    tenant_context: TenantContext,
+    secret: str,
+    expires_in_seconds: int,
+) -> str:
+    if not secret:
+        raise InvalidWidgetTokenError("Widget token secret is not configured")
+
+    payload = {
+        "tenant_id": str(tenant_context.tenant_id),
+        "widget_id": str(tenant_context.widget_id),
+        "session_id": tenant_context.session_id,
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")

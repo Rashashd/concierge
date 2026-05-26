@@ -22,6 +22,19 @@ class ChatResponse(BaseModel):
     conversation_id: str | None = None
 
 
+class WidgetTokenRequest(BaseModel):
+    widget_id: UUID
+    session_id: str = Field(..., min_length=1, max_length=255)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class WidgetTokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int
+
+
 class ToolError(BaseModel):
     tool: str
     code: str
