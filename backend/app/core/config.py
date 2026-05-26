@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     database_url: str = ""
     redis_url: str = ""
 
-    llm_provider: Literal["openai", "azure", "groq"] = "openai"
+    llm_provider: Literal["openai", "azure", "groq"] = "azure"
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = "gpt-4o-mini"
     openai_embedding_model: str = "text-embedding-3-small"
