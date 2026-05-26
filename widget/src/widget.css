@@ -1,0 +1,171 @@
+:root {
+  color: #1d252c;
+  background: transparent;
+  font-family:
+    ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#concierge-root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+.concierge-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(29, 37, 44, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(246, 241, 232, 0.95)),
+    radial-gradient(circle at 12% 0%, rgba(19, 97, 87, 0.18), transparent 34%);
+}
+
+.concierge-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid rgba(29, 37, 44, 0.12);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.concierge-header div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.concierge-header p,
+.concierge-header strong {
+  margin: 0;
+}
+
+.concierge-header p {
+  font-size: 13px;
+  color: #5e6868;
+}
+
+.concierge-header strong {
+  font-family:
+    ui-sans-serif, "Aptos", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.concierge-status {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #16806f;
+  box-shadow: 0 0 0 4px rgba(22, 128, 111, 0.14);
+}
+
+.concierge-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.message {
+  max-width: 86%;
+  padding: 12px 13px;
+  border-radius: 8px;
+  font-family:
+    ui-sans-serif, "Aptos", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.message-assistant {
+  align-self: flex-start;
+  border: 1px solid rgba(29, 37, 44, 0.12);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.message-visitor {
+  align-self: flex-end;
+  background: #173c3a;
+  color: #fffaf0;
+}
+
+.concierge-error {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(157, 45, 45, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 236, 230, 0.84);
+  color: #842c25;
+  font-family:
+    ui-sans-serif, "Aptos", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.concierge-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid rgba(29, 37, 44, 0.12);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.concierge-composer textarea {
+  width: 100%;
+  min-height: 46px;
+  max-height: 110px;
+  resize: none;
+  border: 1px solid rgba(29, 37, 44, 0.16);
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1d252c;
+  font-family:
+    ui-sans-serif, "Aptos", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  outline: none;
+}
+
+.concierge-composer textarea:focus {
+  border-color: #16806f;
+  box-shadow: 0 0 0 3px rgba(22, 128, 111, 0.14);
+}
+
+.concierge-composer button {
+  align-self: end;
+  min-width: 72px;
+  height: 46px;
+  border: 0;
+  border-radius: 8px;
+  background: #c7462b;
+  color: #fffaf0;
+  font-family:
+    ui-sans-serif, "Aptos", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.concierge-composer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
