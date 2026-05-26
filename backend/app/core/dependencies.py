@@ -1,6 +1,5 @@
 """Shared Depends() functions: sessions, auth, role guards, singletons."""
 
-import uuid
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
@@ -12,12 +11,17 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
+from app.db.models import User as UserORM
+from app.db.user_manager import fastapi_users
 from app.schemas import TenantContext, UserContext
 from app.security.widget_token import InvalidWidgetTokenError, verify_widget_token
 
 logger = structlog.get_logger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+# fastapi-users dependency — verifies JWT + fetches User row from DB
+_current_active_user = fastapi_users.current_user(active=True)
 
 
 # Database
@@ -61,43 +65,11 @@ async def get_current_tenant(
 
 
 async def get_current_user(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
-    ],
-    settings: Annotated[Settings, Depends(get_settings)],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[UserORM, Depends(_current_active_user)],
 ) -> UserContext:
-    """Verify the user JWT and return the user context."""
-    import jwt
-
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authorization token",
-        )
-    try:
-        payload = jwt.decode(
-            credentials.credentials,
-            settings.backend_secret_key.get_secret_value(),
-            algorithms=["HS256"],
-        )
-    except jwt.InvalidTokenError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        ) from exc
-
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        )
-
-    return UserContext(
-        user_id=uuid.UUID(user_id),
-        role=payload["role"],
-        tenant_id=uuid.UUID(payload["tenant_id"]) if payload.get("tenant_id") else None,
+    """Verify JWT via fastapi-users, fetch User from DB, return UserContext."""
+    return UserContext.model_validate(
+        {"user_id": user.id, "role": user.role, "tenant_id": user.tenant_id}
     )
 
 

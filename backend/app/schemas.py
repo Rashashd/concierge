@@ -1,6 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
+from fastapi_users import schemas as fu_schemas
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -117,3 +118,21 @@ class TenantResponse(BaseModel):
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# User schemas for fastapi-users
+
+
+class UserRead(fu_schemas.BaseUser[UUID]):
+    role: str
+    tenant_id: UUID | None
+
+
+class UserCreate(fu_schemas.BaseUserCreate):
+    role: Literal["tenant_manager", "tenant_admin"] = "tenant_admin"
+    tenant_id: UUID | None = None
+
+
+class UserUpdate(fu_schemas.BaseUserUpdate):
+    role: Literal["tenant_manager", "tenant_admin"] | None = None
+    tenant_id: UUID | None = None
