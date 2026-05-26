@@ -14,6 +14,7 @@ from app.core.config import Settings, get_settings
 from app.db.models import User as UserORM
 from app.db.user_manager import fastapi_users
 from app.schemas import TenantContext, UserContext
+from app.security.redaction import Redactor
 from app.security.widget_token import InvalidWidgetTokenError, verify_widget_token
 
 logger = structlog.get_logger(__name__)
@@ -38,9 +39,7 @@ async def get_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
 
 
 async def get_current_tenant(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> TenantContext:
     """Verify the widget JWT and return the tenant context."""
@@ -147,3 +146,7 @@ def get_redis(request: Request) -> aioredis.Redis:
 
 def get_llm_client(request: Request) -> object:
     return request.app.state.llm
+
+
+def get_redactor(request: Request) -> Redactor:
+    return request.app.state.redactor
