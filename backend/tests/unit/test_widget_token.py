@@ -10,6 +10,7 @@ from app.schemas import TenantContext, WidgetTokenRequest
 from app.security.widget_token import issue_widget_token, verify_widget_token
 
 TEST_SECRET = "0123456789abcdef0123456789abcdef"
+VAULT_DEFAULTS = {"vault_addr": "http://localhost:8200", "vault_token": SecretStr("root")}
 
 
 def test_issue_widget_token_round_trips_to_tenant_context() -> None:
@@ -44,6 +45,7 @@ async def test_widget_token_endpoint_uses_configured_tenant_id() -> None:
     tenant_id = uuid4()
     widget_id = uuid4()
     settings = Settings(
+        **VAULT_DEFAULTS,
         widget_token_secret=SecretStr(TEST_SECRET),
         dev_widget_tenant_id=tenant_id,
     )
@@ -61,7 +63,7 @@ async def test_widget_token_endpoint_uses_configured_tenant_id() -> None:
 
 @pytest.mark.asyncio
 async def test_widget_token_endpoint_requires_tenant_lookup() -> None:
-    settings = Settings(widget_token_secret=SecretStr(TEST_SECRET))
+    settings = Settings(**VAULT_DEFAULTS, widget_token_secret=SecretStr(TEST_SECRET))
 
     with pytest.raises(HTTPException) as exc_info:
         await issue_token(

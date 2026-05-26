@@ -6,6 +6,17 @@ from typing import Literal
 from pydantic import UUID4, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_LLM_KEY_FIELDS: dict[str, list[str]] = {
+    "openai": ["openai_api_key"],
+    "azure": [
+        "azure_openai_api_key",
+        "azure_openai_endpoint",
+        "azure_openai_deployment",
+        "azure_openai_embedding_deployment",
+    ],
+    "groq": ["groq_api_key"],
+}
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -56,6 +67,39 @@ class Settings(BaseSettings):
     langchain_tracing_v2: bool = False
     langchain_api_key: SecretStr = SecretStr("")
     langchain_project: str = "concierge"
+
+    def validate_fully_loaded(self) -> None:
+        """Raise ValueError for blank required secrets after Vault load."""
+        errors: list[str] = []
+
+        _required_str = [
+            "database_url", "redis_url", "minio_endpoint", "minio_access_key",
+        ]
+        for field in _required_str:
+            if not getattr(self, field):
+                errors.append(field)
+
+        _required_secret = [
+            "backend_secret_key", "widget_token_secret", "minio_secret_key",
+        ]
+        for field in _required_secret:
+            if not getattr(self, field).get_secret_value():
+                errors.append(field)
+
+        for field in _LLM_KEY_FIELDS.get(self.llm_provider, []):
+            val = getattr(self, field)
+            raw = val.get_secret_value() if isinstance(val, SecretStr) else val
+            if not raw:
+                errors.append(f"{field} (required for provider={self.llm_provider})")
+
+        if self.langchain_tracing_v2 and not self.langchain_api_key.get_secret_value():
+            errors.append("langchain_api_key (required when langchain_tracing_v2=true)")
+
+        if errors:
+            raise ValueError(
+                "Missing required secrets after Vault load — refusing to start.\n"
+                + "\n".join(f"  • {e}" for e in errors)
+            )
 
 
 @lru_cache

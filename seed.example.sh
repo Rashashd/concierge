@@ -67,4 +67,10 @@ v kv put secret/concierge/services \
   model_server="CHANGE_ME" \
   guardrails="CHANGE_ME"
 
+# LangSmith tracing (optional — set tracing_enabled="false" to disable)
+v kv put secret/concierge/langchain \
+  tracing_enabled="true" \
+  api_key="CHANGE_ME" \
+  project="concierge"
+
 echo "Done. All secrets written to Vault."

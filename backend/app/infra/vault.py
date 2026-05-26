@@ -15,6 +15,7 @@ _PATH_LLM = "secret/concierge/llm"
 _PATH_WIDGET = "secret/concierge/widget"
 _PATH_BACKEND = "secret/concierge/backend"
 _PATH_SERVICES = "secret/concierge/services"
+_PATH_LANGCHAIN = "secret/concierge/langchain"
 
 
 class VaultClient:
@@ -54,6 +55,9 @@ class VaultClient:
     def get_backend_secret_key(self) -> str:
         data = self._read(_PATH_BACKEND)
         return data["secret_key"]
+
+    def get_langchain_config(self) -> dict[str, str]:
+        return self._read(_PATH_LANGCHAIN)
 
     def get_service_token(self, service: str) -> str:
         """Shared token for internal service-to-service auth."""

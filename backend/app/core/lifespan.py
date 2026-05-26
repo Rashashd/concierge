@@ -59,6 +59,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings.model_server_token = SecretStr(vault.get_service_token("model_server"))
     settings.guardrails_token = SecretStr(vault.get_service_token("guardrails"))
 
+    langchain_config = vault.get_langchain_config()
+    settings.langchain_tracing_v2 = (
+        langchain_config.get("tracing_enabled", "false").lower() == "true"
+    )
+    settings.langchain_api_key = SecretStr(langchain_config.get("api_key", ""))
+    settings.langchain_project = langchain_config.get("project", "concierge")
+
+    settings.validate_fully_loaded()
+    logger.info("settings.validated")
+
     # Database
     engine = create_async_engine(
         settings.database_url,
