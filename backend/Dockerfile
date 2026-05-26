@@ -9,6 +9,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev
 
+# Download spaCy model for PII redaction (separate layer so it survives dep-only rebuilds)
+RUN /app/.venv/bin/python -m spacy download en_core_web_sm
+
 # Copy application code and migration config
 COPY app/ ./app/
 COPY alembic.ini ./

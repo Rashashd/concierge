@@ -1,5 +1,6 @@
 """Startup and shutdown: initialise Vault, DB engine, Redis, and httpx pool."""
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -14,8 +15,26 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.core.config import get_settings
 from app.infra.llm import get_llm
 from app.infra.vault import create_vault_client
+from app.security.redaction import build_redactor
 
 logger = structlog.get_logger(__name__)
+
+
+def _detect_llm_provider(llm_config: dict[str, str]) -> str:
+    """Infer provider from whichever API key is present in the Vault secret."""
+    has_azure = bool(
+        llm_config.get("azure_openai_api_key")
+        and llm_config.get("azure_openai_endpoint")
+    )
+    if has_azure:
+        return "azure"
+    if llm_config.get("openai_api_key"):
+        return "openai"
+    if llm_config.get("groq_api_key"):
+        return "groq"
+    raise RuntimeError(
+        "secret/concierge/llm has no 'provider' key and no recognizable API keys"
+    )
 
 
 @asynccontextmanager
@@ -32,7 +51,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings.redis_url = vault.get_redis_url()
 
     llm_config = vault.get_llm_config()
-    settings.llm_provider = llm_config["provider"]
+    settings.llm_provider = llm_config.get("provider") or _detect_llm_provider(
+        llm_config
+    )
     settings.openai_api_key = SecretStr(llm_config.get("openai_api_key", ""))
     settings.openai_model = llm_config.get("openai_model", "gpt-4o-mini")
     settings.openai_embedding_model = llm_config.get(
@@ -94,6 +115,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # HTTP client
     http_client = httpx.AsyncClient(timeout=30.0)
     app.state.http_client = http_client
+
+    # Redactor (loads spaCy model — CPU-bound, run off the event loop)
+    app.state.redactor = await asyncio.to_thread(build_redactor)
+    logger.info("redactor.ready")
 
     logger.info("backend.started")
 
