@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     azure_openai_endpoint: str = ""
     azure_openai_deployment: str = ""
     azure_openai_embedding_deployment: str = ""
-    azure_openai_embedding_model: str = "text-embedding-3-small"
     azure_openai_embedding_dimensions: int = 1536
     azure_openai_api_version: str = "2025-04-01-preview"
     azure_openai_timeout_seconds: float = 30
