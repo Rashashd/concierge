@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Literal
 
 import httpx
 import redis.asyncio as aioredis
@@ -20,7 +21,11 @@ from app.security.redaction import build_redactor
 logger = structlog.get_logger(__name__)
 
 
-def _detect_llm_provider(llm_config: dict[str, str]) -> str:
+_LLMProvider = Literal["openai", "azure", "groq"]
+_VALID_PROVIDERS: tuple[str, ...] = ("openai", "azure", "groq")
+
+
+def _detect_llm_provider(llm_config: dict[str, str]) -> _LLMProvider:
     """Infer provider from whichever API key is present in the Vault secret."""
     has_azure = bool(
         llm_config.get("azure_openai_api_key")
@@ -51,9 +56,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings.redis_url = vault.get_redis_url()
 
     llm_config = vault.get_llm_config()
-    settings.llm_provider = llm_config.get("provider") or _detect_llm_provider(
-        llm_config
-    )
+    _raw_provider = llm_config.get("provider") or _detect_llm_provider(llm_config)
+    if _raw_provider not in _VALID_PROVIDERS:
+        raise RuntimeError(f"Unsupported LLM provider '{_raw_provider}' in Vault")
+    settings.llm_provider = _raw_provider  # type: ignore[assignment]
     settings.openai_api_key = SecretStr(llm_config.get("openai_api_key", ""))
     settings.openai_model = llm_config.get("openai_model", "gpt-4o-mini")
     settings.openai_embedding_model = llm_config.get(
