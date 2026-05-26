@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-import jwt
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
@@ -14,11 +13,11 @@ from app.core.dependencies import (
     require_tenant_admin,
     require_tenant_manager,
 )
+from app.db.models import User
 from app.schemas import TenantContext, UserContext
 from app.security.widget_token import issue_widget_token
 
 WIDGET_SECRET = "0123456789abcdef0123456789abcdef"
-BACKEND_SECRET = "backend-secret-32-chars-for-test"
 
 
 def _bearer(token: str) -> HTTPAuthorizationCredentials:
@@ -33,14 +32,6 @@ def _widget_settings() -> Settings:
     )
 
 
-def _user_settings(secret: str = BACKEND_SECRET) -> Settings:
-    return Settings(
-        vault_addr="http://localhost:8200",
-        vault_token=SecretStr("root"),
-        backend_secret_key=SecretStr(secret),
-    )
-
-
 def _widget_token(tenant_id=None, widget_id=None, session_id="s1") -> str:
     ctx = TenantContext(
         tenant_id=tenant_id or uuid4(),
@@ -48,13 +39,6 @@ def _widget_token(tenant_id=None, widget_id=None, session_id="s1") -> str:
         session_id=session_id,
     )
     return issue_widget_token(ctx, WIDGET_SECRET, 900)
-
-
-def _user_jwt(user_id=None, role="tenant_manager", tenant_id=None) -> str:
-    payload: dict = {"sub": str(user_id or uuid4()), "role": role}
-    if tenant_id is not None:
-        payload["tenant_id"] = str(tenant_id)
-    return jwt.encode(payload, BACKEND_SECRET, algorithm="HS256")
 
 
 # get_current_tenant
@@ -106,56 +90,46 @@ async def test_get_current_tenant_raises_401_when_secret_is_empty() -> None:
     assert exc_info.value.status_code == 401
 
 
-# get_current_user
+# get_current_user — now maps ORM User → UserContext (JWT verified by fastapi-users)
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_returns_context_for_valid_jwt() -> None:
+async def test_get_current_user_maps_tenant_admin_to_context() -> None:
     user_id = uuid4()
     tenant_id = uuid4()
-    token = _user_jwt(user_id=user_id, role="tenant_admin", tenant_id=tenant_id)
-    user = await get_current_user(_bearer(token), _user_settings(), None)
-    assert user.user_id == user_id
-    assert user.role == "tenant_admin"
-    assert user.tenant_id == tenant_id
+    orm_user = User(
+        id=user_id,
+        email="admin@example.com",
+        hashed_password="x",
+        role="tenant_admin",
+        tenant_id=tenant_id,
+        is_active=True,
+        is_superuser=False,
+        is_verified=False,
+    )
+    ctx = await get_current_user(orm_user)
+    assert ctx.user_id == user_id
+    assert ctx.role == "tenant_admin"
+    assert ctx.tenant_id == tenant_id
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_allows_null_tenant_id_for_manager() -> None:
-    token = _user_jwt(role="tenant_manager")
-    user = await get_current_user(_bearer(token), _user_settings(), None)
-    assert user.role == "tenant_manager"
-    assert user.tenant_id is None
-
-
-@pytest.mark.asyncio
-async def test_get_current_user_raises_401_when_no_credentials() -> None:
-    with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(None, _user_settings(), None)
-    assert exc_info.value.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_get_current_user_raises_401_for_invalid_jwt() -> None:
-    with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(_bearer("not-a-jwt"), _user_settings(), None)
-    assert exc_info.value.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_get_current_user_raises_401_for_missing_sub_claim() -> None:
-    token = jwt.encode({"role": "tenant_manager"}, BACKEND_SECRET, algorithm="HS256")
-    with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(_bearer(token), _user_settings(), None)
-    assert exc_info.value.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_get_current_user_raises_401_for_wrong_secret() -> None:
-    token = _user_jwt()
-    with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(_bearer(token), _user_settings("wrong-secret-32chars!!"), None)
-    assert exc_info.value.status_code == 401
+async def test_get_current_user_maps_manager_with_no_tenant() -> None:
+    user_id = uuid4()
+    orm_user = User(
+        id=user_id,
+        email="mgr@example.com",
+        hashed_password="x",
+        role="tenant_manager",
+        tenant_id=None,
+        is_active=True,
+        is_superuser=False,
+        is_verified=False,
+    )
+    ctx = await get_current_user(orm_user)
+    assert ctx.user_id == user_id
+    assert ctx.role == "tenant_manager"
+    assert ctx.tenant_id is None
 
 
 # get_admin_tenant_session guard
