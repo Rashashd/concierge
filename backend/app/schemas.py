@@ -10,6 +10,12 @@ class TenantContext(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=255)
 
 
+class UserContext(BaseModel):
+    user_id: UUID
+    role: Literal["tenant_manager", "tenant_admin"]
+    tenant_id: UUID | None  # None for tenant_manager
+
+
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=4000)
     conversation_id: str | None = Field(default=None, max_length=255)
@@ -62,3 +68,52 @@ class RAGSearchOutput(BaseModel):
 
 class ChatRouteStatus(BaseModel):
     route: Literal["agent"] = "agent"
+
+
+# ── Tool contracts (from SPEC.md §4) ─────────────────────────────────────────
+
+
+class CaptureLeadInput(BaseModel):
+    visitor_name: str | None = Field(default=None, max_length=255)
+    contact: str = Field(..., max_length=320)
+    intent: str = Field(..., min_length=1, max_length=1000)
+    session_id: str = Field(..., max_length=255)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CaptureLeadOutput(BaseModel):
+    lead_id: UUID
+    status: Literal["captured", "duplicate"]
+
+
+class EscalateInput(BaseModel):
+    reason: str = Field(..., min_length=1, max_length=1000)
+    conversation_id: str = Field(..., max_length=255)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class EscalateOutput(BaseModel):
+    ticket_id: UUID
+    status: Literal["escalated"]
+    visitor_message: str
+
+
+# ── Tenant provisioning ───────────────────────────────────────────────────────
+
+
+class TenantCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    slug: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class TenantResponse(BaseModel):
+    id: UUID
+    name: str
+    slug: str
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
