@@ -2,7 +2,9 @@ from collections.abc import Awaitable, Callable, Sequence
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories import chunks as chunk_repo
 from app.schemas import ChunkReference, RAGSearchOutput, ToolError
 
 
@@ -95,3 +97,34 @@ def synthesize_answer(query: str, chunks: Sequence[RetrievedChunk]) -> str:
 
 def build_unwired_rag_service() -> RAGService:
     return RAGService(embeddings_client=None, chunk_retriever=None)
+
+
+def build_pgvector_rag_service(
+    session: AsyncSession,
+    embeddings_client: object,
+) -> RAGService:
+    async def retrieve_chunks(
+        tenant_id: UUID,
+        embedding: list[float],
+        top_k: int,
+    ) -> Sequence[RetrievedChunk]:
+        chunks = await chunk_repo.search_with_scores(
+            session=session,
+            tenant_id=tenant_id,
+            query_embedding=embedding,
+            k=top_k,
+        )
+        return [
+            RetrievedChunk(
+                chunk_id=chunk.id,
+                content_item_id=chunk.content_item_id,
+                text=chunk.text,
+                score=score,
+            )
+            for chunk, score in chunks
+        ]
+
+    return RAGService(
+        embeddings_client=embeddings_client,
+        chunk_retriever=retrieve_chunks,
+    )

@@ -14,7 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
-from app.infra.llm import get_llm
+from app.infra.llm import get_embeddings, get_llm
 from app.infra.vault import create_vault_client
 from app.security.redaction import build_redactor
 
@@ -75,6 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     settings.groq_api_key = SecretStr(llm_config.get("groq_api_key", ""))
     app.state.llm = get_llm(settings)
+    app.state.embeddings = get_embeddings(settings)
 
     minio_config = vault.get_minio_config()
     settings.minio_endpoint = minio_config["endpoint"]
