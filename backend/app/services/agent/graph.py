@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -6,6 +7,7 @@ from typing_extensions import TypedDict
 
 from app.schemas import TenantContext
 from app.services.agent.nodes import llm_node, tool_node
+from app.services.memory import MemoryMessage
 
 MAX_AGENT_STEPS = 4
 
@@ -47,6 +49,7 @@ async def run_agent_turn(
     tenant_context: TenantContext,
     message: str,
     conversation_id: str | None,
+    memory_messages: Sequence[MemoryMessage] | None = None,
 ) -> str:
     state: _GraphState = {
         "messages": [
@@ -56,6 +59,7 @@ async def run_agent_turn(
                     "Never ask for or invent tenant IDs."
                 )
             ),
+            *_to_langchain_messages(memory_messages or []),
             HumanMessage(content=message),
         ],
         "tenant_context": tenant_context,
@@ -80,3 +84,13 @@ def _final_text(messages: list[BaseMessage]) -> str:
                 return content
             return str(content)
     return "I could not generate a response."
+
+
+def _to_langchain_messages(messages: Sequence[MemoryMessage]) -> list[BaseMessage]:
+    converted: list[BaseMessage] = []
+    for message in messages:
+        if message.role == "user":
+            converted.append(HumanMessage(content=message.content))
+        else:
+            converted.append(AIMessage(content=message.content))
+    return converted
