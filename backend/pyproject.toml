@@ -38,6 +38,7 @@ dependencies = [
     # Logging
     "structlog>=24.4.0",
     "psycopg2-binary>=2.9.12",
+    "cohere>=7.0.0",
 ]
 
 [dependency-groups]

@@ -8,12 +8,14 @@ from app.core.dependencies import (
     get_embeddings_client,
     get_llm_client,
     get_redis,
+    get_reranker,
     get_tenant_session,
 )
 from app.schemas import ChatRequest, ChatResponse, TenantContext
 from app.services.agent.graph import run_agent_turn
 from app.services.memory import RedisMemoryClient, load_history, save_turn
 from app.services.rag import build_pgvector_rag_service
+from app.services.reranker import Reranker
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -26,6 +28,7 @@ async def chat(
     redis: Annotated[RedisMemoryClient, Depends(get_redis)],
     session: Annotated[AsyncSession, Depends(get_tenant_session)],
     embeddings: Annotated[Any, Depends(get_embeddings_client)],
+    reranker: Annotated[Reranker, Depends(get_reranker)],
 ) -> ChatResponse:
     history = await load_history(
         redis=redis,
@@ -35,6 +38,7 @@ async def chat(
     rag_service = build_pgvector_rag_service(
         session=session,
         embeddings_client=embeddings,
+        reranker=reranker,
     )
     answer = await run_agent_turn(
         llm=llm,

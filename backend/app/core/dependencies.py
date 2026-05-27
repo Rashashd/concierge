@@ -16,6 +16,7 @@ from app.db.user_manager import fastapi_users
 from app.schemas import TenantContext, UserContext
 from app.security.redaction import Redactor
 from app.security.widget_token import InvalidWidgetTokenError, verify_widget_token
+from app.services.reranker import Reranker
 
 logger = structlog.get_logger(__name__)
 
@@ -150,6 +151,10 @@ def get_llm_client(request: Request) -> object:
 
 def get_embeddings_client(request: Request) -> object:
     return request.app.state.embeddings
+
+
+def get_reranker(request: Request) -> Reranker:
+    return request.app.state.reranker
 
 
 def get_redactor(request: Request) -> Redactor:

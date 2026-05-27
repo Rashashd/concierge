@@ -44,6 +44,7 @@ from app.repositories import chunks as chunk_repo
 from app.repositories import content as content_repo
 from app.schemas import RAGSearchOutput
 from app.services.rag import build_pgvector_rag_service
+from app.services.reranker import Reranker, build_reranker
 
 GOLDEN_PATH = Path(__file__).with_name("rag_golden.json")
 DISTRACTOR_PATH = Path(__file__).with_name("rag_eval_distractors.json")
@@ -121,6 +122,7 @@ async def main() -> None:
 
     embeddings = get_embeddings(app_settings)
     llm = get_llm(app_settings)
+    reranker = build_reranker(settings=app_settings, llm=llm)
 
     engine = create_async_engine(settings.rag_eval_database_url, pool_pre_ping=True)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -135,12 +137,20 @@ async def main() -> None:
             session_factory=session_factory,
             examples=examples,
             embeddings=embeddings,
+            reranker=reranker,
             chunk_tenants=seeded_data.chunk_tenants,
             chunk_fixture_paths=seeded_data.chunk_fixture_paths,
             chunk_counts=seeded_data.chunk_counts,
         )
     finally:
         await engine.dispose()
+
+    reranker_failure_count = int(getattr(reranker, "failure_count", 0))
+    if app_settings.reranker_provider == "cohere" and reranker_failure_count:
+        raise RuntimeError(
+            "Cohere reranker failed during eval; refusing to report fallback "
+            f"metrics as Cohere results. failures={reranker_failure_count}"
+        )
 
     ragas_scores = await _run_required_ragas(
         example_results,
@@ -163,6 +173,7 @@ def _build_app_settings(
     app_settings = Settings(
         vault_addr=eval_settings.vault_addr,
         vault_token=eval_settings.vault_token,
+        dev_widget_tenant_id=None,
     )
     llm_config = vault.get_llm_config()
     provider = llm_config.get("provider", app_settings.llm_provider)
@@ -187,6 +198,25 @@ def _build_app_settings(
         "azure_openai_embedding_deployment", ""
     )
     app_settings.groq_api_key = SecretStr(llm_config.get("groq_api_key", ""))
+    app_settings.reranker_provider = llm_config.get(
+        "reranker_provider", app_settings.reranker_provider
+    )  # type: ignore[assignment]
+    app_settings.cohere_api_key = SecretStr(llm_config.get("cohere_api_key", ""))
+    app_settings.cohere_rerank_model = llm_config.get(
+        "cohere_rerank_model", app_settings.cohere_rerank_model
+    )
+    app_settings.reranker_timeout_seconds = float(
+        llm_config.get(
+            "reranker_timeout_seconds",
+            str(app_settings.reranker_timeout_seconds),
+        )
+    )
+    app_settings.reranker_max_retries = int(
+        llm_config.get(
+            "reranker_max_retries",
+            str(app_settings.reranker_max_retries),
+        )
+    )
     return app_settings
 
 
@@ -408,6 +438,7 @@ async def _run_rag_examples(
     session_factory: async_sessionmaker[Any],
     examples: list[GoldenExample],
     embeddings: Any,
+    reranker: Reranker,
     chunk_tenants: dict[UUID, UUID],
     chunk_fixture_paths: dict[UUID, str],
     chunk_counts: dict[str, int],
@@ -424,6 +455,7 @@ async def _run_rag_examples(
                 rag_service = build_pgvector_rag_service(
                     session=session,
                     embeddings_client=embeddings,
+                    reranker=reranker,
                 )
                 rag_output = await rag_service.search(
                     tenant_id=tenant_id,
