@@ -148,5 +148,9 @@ def get_llm_client(request: Request) -> object:
     return request.app.state.llm
 
 
+def get_embeddings_client(request: Request) -> object:
+    return request.app.state.embeddings
+
+
 def get_redactor(request: Request) -> Redactor:
     return request.app.state.redactor
