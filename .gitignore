@@ -1,6 +1,7 @@
 # Secrets
 .env
 seed.sh
+seed.example.sh
 
 # AI assistant config (personal/team-specific)
 CLAUDE.md
