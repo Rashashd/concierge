@@ -79,11 +79,11 @@ not optional.
 When evaluating advanced RAG techniques (hybrid search, reranking, query
 rewriting, parent-child retrieval), compare against these primary metrics:
 
-- **`expected_doc_precision_at_5`** — measures how much of the top-5 context
+- **`expected_doc_precision_at_5`** - measures how much of the top-5 context
   comes from the correct document(s). Lower means more distractor noise.
-- **RAGAS `context_precision`** — LLM-judged relevance of retrieved contexts
+- **RAGAS `context_precision`** - LLM-judged relevance of retrieved contexts
   to the reference answer.
-- **Answer correctness** — via `answer_contains_expected` and RAGAS
+- **Answer correctness** - via `answer_contains_expected` and RAGAS
   `faithfulness`.
 
 The corpus is intentionally hard: same-tenant distractors share vocabulary with
@@ -91,8 +91,25 @@ answer docs, so naive vector search will retrieve a mix of correct and
 distractor chunks. Advanced RAG should improve `expected_doc_precision_at_5`
 and `context_precision` over this baseline.
 
-### Baseline Results
+### Results
 
-| Date | Corpus | Chunks | Hit@1 | Hit@5 | MRR@5 | Expected doc precision@5 | Expected doc MRR@5 | Answer phrase pass | Cross-tenant leaks | Faithfulness | Answer relevancy | Context precision | Context recall | Notes |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 2026-05-27 | Hardened temporary CI corpus | 172 | 0.70 | 0.95 | 0.8042 | 0.4700 | 0.7396 | 0.70 | 0 | 0.9881 | 0.8738 | 0.6811 | 0.8000 | 20 examples (15 single-hop + 5 multi-hop) across 3 tenants. 15 answer docs plus 15 same-tenant distractor docs. Markers removed from chunk text; retrieval checks are metadata-based. |
+#### Deterministic Metrics
+
+| Date | Technique | Chunks | Hit@1 | Hit@5 | MRR@5 | Expected doc precision@5 | Expected doc MRR@5 | Answer phrase pass | Cross-tenant leaks |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2026-05-27 | Baseline (pgvector) | 172 | 0.70 | 0.95 | 0.8042 | 0.4700 | 0.7396 | 0.70 | 0 |
+| 2026-05-27 | Reranker | 172 | 0.80 | 1.00 | 0.9000 | 0.5700 | 0.8354 | 0.95 | 0 |
+
+#### RAGAS Metrics
+
+| Date | Technique | Faithfulness | Answer relevancy | Context precision | Context recall |
+|---|---|---:|---:|---:|---:|
+| 2026-05-27 | Baseline (pgvector) | 0.9881 | 0.8738 | 0.6811 | 0.8000 |
+| 2026-05-27 | Reranker | 0.9974 | 0.9049 | 0.6737 | 0.9750 |
+
+#### Notes
+
+| Date | Technique | Notes |
+|---|---|---|
+| 2026-05-27 | Baseline (pgvector) | 20 examples, 15 distractors, marker-free chunk text. |
+| 2026-05-27 | Reranker | LLM reranker scores 20 vector candidates, keeps top 5. Improves precision (+21%), answer accuracy (+36%), hit@1 (+14%). Context precision flat - RAGAS judge noise. |

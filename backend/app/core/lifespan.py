@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.infra.llm import get_embeddings, get_llm
 from app.infra.vault import create_vault_client
 from app.security.redaction import build_redactor
+from app.services.reranker import build_reranker
 
 logger = structlog.get_logger(__name__)
 
@@ -76,6 +77,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings.groq_api_key = SecretStr(llm_config.get("groq_api_key", ""))
     app.state.llm = get_llm(settings)
     app.state.embeddings = get_embeddings(settings)
+    settings.reranker_provider = llm_config.get(
+        "reranker_provider", settings.reranker_provider
+    )  # type: ignore[assignment]
+    settings.cohere_api_key = SecretStr(llm_config.get("cohere_api_key", ""))
+    settings.cohere_rerank_model = llm_config.get(
+        "cohere_rerank_model", settings.cohere_rerank_model
+    )
+    settings.reranker_timeout_seconds = float(
+        llm_config.get(
+            "reranker_timeout_seconds",
+            str(settings.reranker_timeout_seconds),
+        )
+    )
+    settings.reranker_max_retries = int(
+        llm_config.get("reranker_max_retries", str(settings.reranker_max_retries))
+    )
 
     minio_config = vault.get_minio_config()
     settings.minio_endpoint = minio_config["endpoint"]
@@ -95,6 +112,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings.langchain_project = langchain_config.get("project", "concierge")
 
     settings.validate_fully_loaded()
+    app.state.reranker = build_reranker(settings=settings, llm=app.state.llm)
     logger.info("settings.validated")
 
     # Database

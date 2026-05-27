@@ -28,6 +28,11 @@ def main() -> None:
     env = _load_env(ENV_PATH)
     env.update(_env_overrides(["VAULT_ADDR", "VAULT_TOKEN"]))
     _require_keys(env, REQUIRED_KEYS)
+    reranker_provider = env.get("RERANKER_PROVIDER", "llm") or "llm"
+    if reranker_provider not in {"llm", "cohere"}:
+        raise RuntimeError("RERANKER_PROVIDER must be 'llm' or 'cohere'")
+    if reranker_provider == "cohere":
+        _require_keys(env, ["COHERE_API_KEY"])
 
     vault_addr = _host_vault_addr(env["VAULT_ADDR"])
     client = hvac.Client(url=vault_addr, token=env["VAULT_TOKEN"])
@@ -70,6 +75,13 @@ def main() -> None:
                 "AZURE_OPENAI_EMBEDDING_DEPLOYMENT"
             ],
             "groq_api_key": "",
+            "reranker_provider": reranker_provider,
+            "cohere_api_key": env.get("COHERE_API_KEY", ""),
+            "cohere_rerank_model": env.get(
+                "COHERE_RERANK_MODEL", "rerank-v4.0-fast"
+            ),
+            "reranker_timeout_seconds": env.get("RERANKER_TIMEOUT_SECONDS", "10"),
+            "reranker_max_retries": env.get("RERANKER_MAX_RETRIES", "2"),
         },
     )
     _write_secret(
