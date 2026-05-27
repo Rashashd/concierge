@@ -74,6 +74,12 @@ class Settings(BaseSettings):
     reranker_timeout_seconds: float = 10.0
     reranker_max_retries: int = 2
 
+    rag_retrieval_mode: Literal["vector", "hybrid"] = "hybrid"
+    hybrid_vector_weight: float = 0.7
+    hybrid_keyword_weight: float = 0.3
+    hybrid_keyword_candidate_count: int = 20
+    hybrid_vector_candidate_count: int = 20
+
     def validate_fully_loaded(self) -> None:
         """Raise ValueError for blank required secrets after Vault load."""
         errors: list[str] = []

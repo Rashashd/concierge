@@ -99,6 +99,7 @@ and `context_precision` over this baseline.
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | 2026-05-27 | Baseline (pgvector) | 172 | 0.70 | 0.95 | 0.8042 | 0.4700 | 0.7396 | 0.70 | 0 |
 | 2026-05-27 | Reranker | 172 | 0.80 | 1.00 | 0.9000 | 0.5700 | 0.8354 | 0.95 | 0 |
+| 2026-05-28 | Hybrid + Reranker | 172 | 0.85 | 1.00 | 0.9167 | 0.5500 | 0.8500 | 0.95 | 0 |
 
 #### RAGAS Metrics
 
@@ -106,6 +107,7 @@ and `context_precision` over this baseline.
 |---|---|---:|---:|---:|---:|
 | 2026-05-27 | Baseline (pgvector) | 0.9881 | 0.8738 | 0.6811 | 0.8000 |
 | 2026-05-27 | Reranker | 0.9974 | 0.9049 | 0.6737 | 0.9750 |
+| 2026-05-28 | Hybrid + Reranker | 0.9832 | 0.8880 | 0.7232 | 0.9750 |
 
 #### Notes
 
@@ -113,3 +115,4 @@ and `context_precision` over this baseline.
 |---|---|---|
 | 2026-05-27 | Baseline (pgvector) | 20 examples, 15 distractors, marker-free chunk text. |
 | 2026-05-27 | Reranker | LLM reranker scores 20 vector candidates, keeps top 5. Improves precision (+21%), answer accuracy (+36%), hit@1 (+14%). Context precision flat - RAGAS judge noise. |
+| 2026-05-28 | Hybrid + Reranker | pgvector + Postgres FTS (0.7/0.3 weights), then reranker. Improves context_precision (+7% vs reranker), hit@1 (+6%), MRR@5 (+2%). Minor precision@5 dip within noise. |

@@ -2,9 +2,10 @@ from uuid import uuid4
 
 import pytest
 from langchain_core.messages import BaseMessage
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from app.api.chat import chat
+from app.core.config import Settings
 from app.schemas import ChatRequest, TenantContext
 from app.services.memory import build_session_key
 
@@ -65,6 +66,9 @@ async def test_chat_returns_agent_response_with_verified_tenant_context() -> Non
     )
     redis = FakeRedis()
     model = FakeFinalModel()
+    settings = Settings(
+        vault_addr="http://vault:8200", vault_token=SecretStr("x")
+    )
     response = await chat(
         request=ChatRequest(message="Hello", conversation_id="conversation-1"),
         tenant_context=tenant_context,
@@ -72,6 +76,8 @@ async def test_chat_returns_agent_response_with_verified_tenant_context() -> Non
         redis=redis,
         session=object(),
         embeddings=object(),
+        reranker=None,  # type: ignore[arg-type]
+        settings=settings,
     )
 
     assert response.answer == "Tenant-safe response."
@@ -94,6 +100,9 @@ async def test_chat_loads_tenant_scoped_history_before_agent_turn() -> None:
         '{"role":"assistant","content":"Earlier answer"}',
     ]
     model = FakeFinalModel()
+    settings = Settings(
+        vault_addr="http://vault:8200", vault_token=SecretStr("x")
+    )
 
     await chat(
         request=ChatRequest(message="Current question"),
@@ -102,6 +111,8 @@ async def test_chat_loads_tenant_scoped_history_before_agent_turn() -> None:
         redis=redis,
         session=object(),
         embeddings=object(),
+        reranker=None,  # type: ignore[arg-type]
+        settings=settings,
     )
 
     contents = [str(message.content) for message in model.received_messages]

@@ -82,6 +82,15 @@ def main() -> None:
             ),
             "reranker_timeout_seconds": env.get("RERANKER_TIMEOUT_SECONDS", "10"),
             "reranker_max_retries": env.get("RERANKER_MAX_RETRIES", "2"),
+            "rag_retrieval_mode": env.get("RAG_RETRIEVAL_MODE", "hybrid"),
+            "hybrid_vector_weight": env.get("HYBRID_VECTOR_WEIGHT", "0.7"),
+            "hybrid_keyword_weight": env.get("HYBRID_KEYWORD_WEIGHT", "0.3"),
+            "hybrid_keyword_candidate_count": env.get(
+                "HYBRID_KEYWORD_CANDIDATE_COUNT", "20"
+            ),
+            "hybrid_vector_candidate_count": env.get(
+                "HYBRID_VECTOR_CANDIDATE_COUNT", "20"
+            ),
         },
     )
     _write_secret(
