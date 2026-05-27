@@ -1,0 +1,5 @@
+rag:
+  retrieval_hit_at_5: 0.70
+  faithfulness: 0.80
+  answer_relevancy: 0.80
+  cross_tenant_leak_count: 0
