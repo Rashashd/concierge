@@ -74,5 +74,6 @@ async def _run_rag_search(state: AgentState, args: dict[str, Any]) -> str:
     result = await rag_search(
         tenant_id=state["tenant_context"].tenant_id,
         tool_input=tool_input,
+        rag_service=state.get("rag_service"),
     )
     return json.dumps(result.model_dump(mode="json"))

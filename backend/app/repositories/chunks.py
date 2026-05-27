@@ -60,6 +60,26 @@ async def search(
     return list(result.scalars().all())
 
 
+async def search_with_scores(
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    query_embedding: list[float],
+    k: int = 5,
+) -> list[tuple[Chunk, float]]:
+    """Return chunks with cosine similarity scores for RAG citations."""
+    distance = Chunk.embedding.cosine_distance(query_embedding)
+    result = await session.execute(
+        select(Chunk, distance.label("distance"))
+        .where(Chunk.tenant_id == tenant_id)
+        .order_by(distance)
+        .limit(k)
+    )
+    return [
+        (chunk, max(0.0, 1.0 - float(cosine_distance)))
+        for chunk, cosine_distance in result.all()
+    ]
+
+
 async def delete_by_content_item(
     session: AsyncSession,
     tenant_id: uuid.UUID,

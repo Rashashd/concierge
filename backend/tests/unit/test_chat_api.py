@@ -70,6 +70,8 @@ async def test_chat_returns_agent_response_with_verified_tenant_context() -> Non
         tenant_context=tenant_context,
         llm=model,
         redis=redis,
+        session=object(),
+        embeddings=object(),
     )
 
     assert response.answer == "Tenant-safe response."
@@ -98,6 +100,8 @@ async def test_chat_loads_tenant_scoped_history_before_agent_turn() -> None:
         tenant_context=tenant_context,
         llm=model,
         redis=redis,
+        session=object(),
+        embeddings=object(),
     )
 
     contents = [str(message.content) for message in model.received_messages]
