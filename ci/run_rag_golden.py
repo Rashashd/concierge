@@ -1,11 +1,17 @@
+# ruff: noqa: E402
 from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from uuid import UUID
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_ROOT = REPO_ROOT / "backend"
+sys.path.insert(0, str(BACKEND_ROOT))
 
 from datasets import Dataset
 from pydantic import BaseModel, Field, SecretStr
