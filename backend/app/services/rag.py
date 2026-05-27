@@ -17,7 +17,7 @@ class RetrievedChunk(BaseModel):
 
 
 type ChunkRetriever = Callable[
-    [UUID, list[float], int],
+    [UUID, str, list[float], int],
     Awaitable[Sequence[RetrievedChunk]],
 ]
 
@@ -60,7 +60,7 @@ class RAGService:
                 else top_k
             )
             chunks = await self._chunk_retriever(
-                tenant_id, embedding, candidate_count
+                tenant_id, query, embedding, candidate_count
             )
         except RuntimeError as exc:
             return ToolError(
@@ -156,18 +156,36 @@ def build_pgvector_rag_service(
     session: AsyncSession,
     embeddings_client: object,
     reranker: Reranker | None = None,
+    retrieval_mode: str = "vector",
+    hybrid_vector_weight: float = 0.7,
+    hybrid_keyword_weight: float = 0.3,
+    hybrid_vector_candidate_count: int = 20,
+    hybrid_keyword_candidate_count: int = 20,
 ) -> RAGService:
     async def retrieve_chunks(
         tenant_id: UUID,
+        query: str,
         embedding: list[float],
         top_k: int,
     ) -> Sequence[RetrievedChunk]:
-        chunks = await chunk_repo.search_with_scores(
-            session=session,
-            tenant_id=tenant_id,
-            query_embedding=embedding,
-            k=top_k,
-        )
+        if retrieval_mode == "hybrid":
+            results = await chunk_repo.hybrid_search(
+                session=session,
+                tenant_id=tenant_id,
+                query_embedding=embedding,
+                query=query,
+                vector_weight=hybrid_vector_weight,
+                keyword_weight=hybrid_keyword_weight,
+                vector_k=hybrid_vector_candidate_count,
+                keyword_k=hybrid_keyword_candidate_count,
+            )
+        else:
+            results = await chunk_repo.search_with_scores(
+                session=session,
+                tenant_id=tenant_id,
+                query_embedding=embedding,
+                k=top_k,
+            )
         return [
             RetrievedChunk(
                 chunk_id=chunk.id,
@@ -175,7 +193,7 @@ def build_pgvector_rag_service(
                 text=chunk.text,
                 score=score,
             )
-            for chunk, score in chunks
+            for chunk, score in results
         ]
 
     return RAGService(

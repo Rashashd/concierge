@@ -65,6 +65,7 @@ async def test_rag_service_without_reranker_preserves_current_behavior() -> None
 
     async def retrieve_chunks(
         received_tenant_id: object,
+        query: object,
         embedding: object,
         top_k: int,
     ) -> list[RetrievedChunk]:
@@ -103,6 +104,7 @@ async def test_rag_service_with_reranker_retrieves_more_candidates() -> None:
 
     async def retrieve_chunks(
         received_tenant_id: object,
+        query: object,
         embedding: object,
         top_k: int,
     ) -> list[RetrievedChunk]:
@@ -143,6 +145,7 @@ async def test_reranker_output_changes_final_chunk_order() -> None:
 
     async def retrieve_chunks(
         received_tenant_id: object,
+        query: object,
         embedding: object,
         top_k: int,
     ) -> list[RetrievedChunk]:
@@ -194,6 +197,7 @@ async def test_reranker_invalid_output_falls_back_to_vector_order() -> None:
 
     async def retrieve_chunks(
         received_tenant_id: object,
+        query: object,
         embedding: object,
         top_k: int,
     ) -> list[RetrievedChunk]:
@@ -237,6 +241,7 @@ async def test_reranker_failure_falls_back_to_vector_order() -> None:
 
     async def retrieve_chunks(
         received_tenant_id: object,
+        query: object,
         embedding: object,
         top_k: int,
     ) -> list[RetrievedChunk]:
@@ -276,6 +281,7 @@ async def test_tenant_id_passed_into_retriever_with_reranker() -> None:
 
     async def retrieve_chunks(
         received_tenant_id: object,
+        query: object,
         embedding: object,
         top_k: int,
     ) -> list[RetrievedChunk]:

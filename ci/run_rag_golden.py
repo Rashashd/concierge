@@ -138,6 +138,7 @@ async def main() -> None:
             examples=examples,
             embeddings=embeddings,
             reranker=reranker,
+            app_settings=app_settings,
             chunk_tenants=seeded_data.chunk_tenants,
             chunk_fixture_paths=seeded_data.chunk_fixture_paths,
             chunk_counts=seeded_data.chunk_counts,
@@ -162,6 +163,7 @@ async def main() -> None:
         example_results=example_results,
         ragas_scores=ragas_scores,
         distractor_chunk_count=seeded_data.distractor_chunk_count,
+        retrieval_mode=app_settings.rag_retrieval_mode,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
 
@@ -215,6 +217,31 @@ def _build_app_settings(
         llm_config.get(
             "reranker_max_retries",
             str(app_settings.reranker_max_retries),
+        )
+    )
+    app_settings.rag_retrieval_mode = llm_config.get(
+        "rag_retrieval_mode", app_settings.rag_retrieval_mode
+    )  # type: ignore[assignment]
+    app_settings.hybrid_vector_weight = float(
+        llm_config.get(
+            "hybrid_vector_weight", str(app_settings.hybrid_vector_weight)
+        )
+    )
+    app_settings.hybrid_keyword_weight = float(
+        llm_config.get(
+            "hybrid_keyword_weight", str(app_settings.hybrid_keyword_weight)
+        )
+    )
+    app_settings.hybrid_vector_candidate_count = int(
+        llm_config.get(
+            "hybrid_vector_candidate_count",
+            str(app_settings.hybrid_vector_candidate_count),
+        )
+    )
+    app_settings.hybrid_keyword_candidate_count = int(
+        llm_config.get(
+            "hybrid_keyword_candidate_count",
+            str(app_settings.hybrid_keyword_candidate_count),
         )
     )
     return app_settings
@@ -439,6 +466,7 @@ async def _run_rag_examples(
     examples: list[GoldenExample],
     embeddings: Any,
     reranker: Reranker,
+    app_settings: Settings,
     chunk_tenants: dict[UUID, UUID],
     chunk_fixture_paths: dict[UUID, str],
     chunk_counts: dict[str, int],
@@ -456,6 +484,11 @@ async def _run_rag_examples(
                     session=session,
                     embeddings_client=embeddings,
                     reranker=reranker,
+                    retrieval_mode=app_settings.rag_retrieval_mode,
+                    hybrid_vector_weight=app_settings.hybrid_vector_weight,
+                    hybrid_keyword_weight=app_settings.hybrid_keyword_weight,
+                    hybrid_vector_candidate_count=app_settings.hybrid_vector_candidate_count,
+                    hybrid_keyword_candidate_count=app_settings.hybrid_keyword_candidate_count,
                 )
                 rag_output = await rag_service.search(
                     tenant_id=tenant_id,
@@ -596,6 +629,7 @@ def _build_report(
     example_results: list[EvalExampleResult],
     ragas_scores: dict[str, float],
     distractor_chunk_count: int,
+    retrieval_mode: str,
 ) -> dict[str, Any]:
     total = len(example_results)
     retrieval_hits = sum(result.retrieval_hit for result in example_results)
@@ -627,6 +661,7 @@ def _build_report(
     )
     return {
         "baseline_type": "temporary_ci_ingestion",
+        "retrieval_mode": retrieval_mode,
         "example_count": total,
         "chunk_count_total": total_chunks,
         "answer_doc_chunk_count": answer_doc_chunks,

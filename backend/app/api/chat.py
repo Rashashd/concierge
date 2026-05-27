@@ -3,6 +3,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import Settings, get_settings
 from app.core.dependencies import (
     get_current_tenant,
     get_embeddings_client,
@@ -29,6 +30,7 @@ async def chat(
     session: Annotated[AsyncSession, Depends(get_tenant_session)],
     embeddings: Annotated[Any, Depends(get_embeddings_client)],
     reranker: Annotated[Reranker, Depends(get_reranker)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> ChatResponse:
     history = await load_history(
         redis=redis,
@@ -39,6 +41,11 @@ async def chat(
         session=session,
         embeddings_client=embeddings,
         reranker=reranker,
+        retrieval_mode=settings.rag_retrieval_mode,
+        hybrid_vector_weight=settings.hybrid_vector_weight,
+        hybrid_keyword_weight=settings.hybrid_keyword_weight,
+        hybrid_vector_candidate_count=settings.hybrid_vector_candidate_count,
+        hybrid_keyword_candidate_count=settings.hybrid_keyword_candidate_count,
     )
     answer = await run_agent_turn(
         llm=llm,
