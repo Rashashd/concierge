@@ -16,6 +16,7 @@ from app.db.user_manager import fastapi_users
 from app.schemas import TenantContext, UserContext
 from app.security.redaction import Redactor
 from app.security.widget_token import InvalidWidgetTokenError, verify_widget_token
+from app.services.classifier_router import ClassifierClient
 from app.services.reranker import Reranker
 
 logger = structlog.get_logger(__name__)
@@ -159,3 +160,14 @@ def get_reranker(request: Request) -> Reranker:
 
 def get_redactor(request: Request) -> Redactor:
     return request.app.state.redactor
+
+
+def get_classifier_client(request: Request) -> ClassifierClient | None:
+    """Optional classifier client from model-server.
+
+    TODO: Hussein will implement the real model-server HTTP client in
+    backend/app/infra/model_server.py. Once ready, load it from
+    request.app.state.classifier_client here. For now returns None so
+    the chat route gracefully falls through to the agent flow.
+    """
+    return None
