@@ -1,12 +1,15 @@
 from collections.abc import Awaitable, Callable, Sequence
 from uuid import UUID
 
+import structlog
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import chunks as chunk_repo
 from app.schemas import ChunkReference, RAGSearchOutput, ToolError
 from app.services.reranker import RerankCandidate, Reranker
+
+logger = structlog.get_logger(__name__)
 
 
 class RetrievedChunk(BaseModel):
@@ -114,7 +117,11 @@ class RAGService:
             decisions = await self._reranker.rerank(
                 query=query, candidates=candidates
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "rag.rerank_failed",
+                error_type=type(exc).__name__,
+            )
             return chunks[:top_k]
 
         score_map = {d.index: d.score for d in decisions}
