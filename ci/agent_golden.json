@@ -17,7 +17,7 @@
     "expected_action": "refuse",
     "expected_answer_phrases": ["can't help"],
     "should_call_agent": false,
-    "should_save_memory": true,
+    "should_save_memory": false,
     "tenant_id_source": "verified_context"
   },
   {

@@ -95,7 +95,8 @@ async def _run_example(entry: dict[str, Any]) -> dict[str, Any]:
         run_agent=run_agent,
     )
 
-    memory.save(message, answer)
+    if should_save_memory:
+        memory.save(message, answer)
     memory_saved = len(memory.saved_turns) > 0
 
     failures: list[str] = []
@@ -112,6 +113,8 @@ async def _run_example(entry: dict[str, Any]) -> dict[str, Any]:
 
     if should_save_memory and not memory_saved:
         failures.append("expected memory save but none occurred")
+    if not should_save_memory and memory_saved:
+        failures.append("expected no memory save but memory was written")
 
     phrase_checks: list[dict[str, Any]] = []
     for phrase in expected_phrases:
