@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -6,6 +7,7 @@ from pydantic import SecretStr, ValidationError
 
 from app.api.chat import chat
 from app.core.config import Settings
+from app.infra.guardrails import GuardrailResponse
 from app.schemas import ChatRequest, TenantContext
 from app.services.classifier_router import (
     ESCALATE_MESSAGE,
@@ -15,6 +17,44 @@ from app.services.classifier_router import (
     ClassifierScores,
 )
 from app.services.memory import build_session_key
+
+
+class FakeRequest:
+    def __init__(self, headers: dict[str, str] | None = None) -> None:
+        self.headers = headers or {}
+
+
+class FakeRedactor:
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def redact(self, text: str) -> str:
+        self.calls.append(text)
+        return text
+
+
+class FakeGuardrails:
+    def __init__(self) -> None:
+        self.input_checks: list[tuple] = []
+        self.output_checks: list[tuple] = []
+
+    async def check_input(
+        self,
+        tenant_id: object,
+        message: str,
+        tenant_config: object = None,
+    ) -> GuardrailResponse:
+        self.input_checks.append((tenant_id, message, tenant_config))
+        return GuardrailResponse(decision="allow")
+
+    async def check_output(
+        self,
+        tenant_id: object,
+        message: str,
+        tenant_config: object = None,
+    ) -> GuardrailResponse:
+        self.output_checks.append((tenant_id, message, tenant_config))
+        return GuardrailResponse(decision="allow")
 
 
 class FakeFinalModel:
@@ -80,9 +120,18 @@ def _make_prediction(
     )
 
 
+def _fake_tenant() -> object:
+    return type(
+        "FakeTenant",
+        (),
+        {"allowed_origins": [], "guardrail_config": {}},
+    )()
+
+
 def _base_deps():
     """Return the base deps dict shared by most tests."""
     return {
+        "http_request": FakeRequest(),
         "request": ChatRequest(message="Hello", conversation_id="conversation-1"),
         "tenant_context": TenantContext(
             tenant_id=uuid4(),
@@ -94,14 +143,27 @@ def _base_deps():
         "session": object(),
         "embeddings": object(),
         "reranker": None,
+        "redactor": FakeRedactor(),
         "settings": Settings(
             vault_addr="http://vault:8200", vault_token=SecretStr("x")
         ),
+        "guardrails": FakeGuardrails(),
     }
 
 
+@pytest.fixture
+def _patch_tenant_repo():
+    with patch(
+        "app.api.chat.tenant_repo.get_by_id",
+        AsyncMock(return_value=_fake_tenant()),
+    ):
+        yield
+
+
 @pytest.mark.asyncio
-async def test_chat_returns_agent_response_with_verified_tenant_context() -> None:
+async def test_chat_returns_agent_response_with_verified_tenant_context(
+    _patch_tenant_repo: None,
+) -> None:
     deps = _base_deps()
     response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
 
@@ -114,7 +176,9 @@ async def test_chat_returns_agent_response_with_verified_tenant_context() -> Non
 
 
 @pytest.mark.asyncio
-async def test_chat_loads_tenant_scoped_history_before_agent_turn() -> None:
+async def test_chat_loads_tenant_scoped_history_before_agent_turn(
+    _patch_tenant_repo: None,
+) -> None:
     deps = _base_deps()
     key = build_session_key(
         deps["tenant_context"].tenant_id, deps["tenant_context"].session_id
@@ -155,7 +219,7 @@ def test_chat_body_cannot_override_tenant_context() -> None:
 
 
 @pytest.mark.asyncio
-async def test_spam_route_does_not_call_llm() -> None:
+async def test_spam_route_does_not_call_llm(_patch_tenant_repo: None) -> None:
     deps = _base_deps()
     prediction = _make_prediction("spam", "drop")
 
@@ -176,7 +240,7 @@ async def test_spam_route_does_not_call_llm() -> None:
 
 
 @pytest.mark.asyncio
-async def test_spam_route_does_not_save_memory() -> None:
+async def test_spam_route_does_not_save_memory(_patch_tenant_repo: None) -> None:
     deps = _base_deps()
     prediction = _make_prediction("spam", "drop")
 
@@ -194,7 +258,9 @@ async def test_spam_route_does_not_save_memory() -> None:
 
 
 @pytest.mark.asyncio
-async def test_classifier_failure_falls_back_to_agent() -> None:
+async def test_classifier_failure_falls_back_to_agent(
+    _patch_tenant_repo: None,
+) -> None:
     deps = _base_deps()
 
     class FailingClassifier:
@@ -208,7 +274,9 @@ async def test_classifier_failure_falls_back_to_agent() -> None:
 
 
 @pytest.mark.asyncio
-async def test_question_route_preserves_agent_behavior() -> None:
+async def test_question_route_preserves_agent_behavior(
+    _patch_tenant_repo: None,
+) -> None:
     deps = _base_deps()
     prediction = _make_prediction("question", "rag_search")
 
@@ -227,7 +295,7 @@ async def test_question_route_preserves_agent_behavior() -> None:
 
 
 @pytest.mark.asyncio
-async def test_lead_route_returns_lead_response() -> None:
+async def test_lead_route_returns_lead_response(_patch_tenant_repo: None) -> None:
     deps = _base_deps()
     prediction = _make_prediction("lead", "capture_lead")
 
@@ -242,7 +310,9 @@ async def test_lead_route_returns_lead_response() -> None:
 
 
 @pytest.mark.asyncio
-async def test_escalate_route_returns_escalate_response() -> None:
+async def test_escalate_route_returns_escalate_response(
+    _patch_tenant_repo: None,
+) -> None:
     deps = _base_deps()
     prediction = _make_prediction("escalate", "escalate")
 
@@ -257,7 +327,7 @@ async def test_escalate_route_returns_escalate_response() -> None:
 
 
 @pytest.mark.asyncio
-async def test_none_classifier_runs_normal_agent() -> None:
+async def test_none_classifier_runs_normal_agent(_patch_tenant_repo: None) -> None:
     deps = _base_deps()
     response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
 
@@ -266,7 +336,7 @@ async def test_none_classifier_runs_normal_agent() -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_handoff_runs_normal_agent() -> None:
+async def test_agent_handoff_runs_normal_agent(_patch_tenant_repo: None) -> None:
     deps = _base_deps()
     prediction = _make_prediction("lead", "agent_handoff", confidence=0.30)
 
@@ -278,3 +348,96 @@ async def test_agent_handoff_runs_normal_agent() -> None:
 
     assert response.answer == "Tenant-safe response."
     assert deps["llm"].received_messages
+
+
+# ── New behavior: disallowed origin ──────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_disallowed_origin_raises_403() -> None:
+    from fastapi import HTTPException
+
+    deps = _base_deps()
+    deps["http_request"] = FakeRequest({"origin": "https://evil.com"})
+
+    class FakeRestrictiveTenant:
+        allowed_origins = ["https://my-site.com"]
+        guardrail_config = {}
+
+    with patch(
+        "app.api.chat.tenant_repo.get_by_id",
+        AsyncMock(return_value=FakeRestrictiveTenant()),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Origin not allowed"
+
+
+# ── New behavior: guardrails input refusal ───────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_guardrails_input_refusal_blocks_llm(_patch_tenant_repo: None) -> None:
+    deps = _base_deps()
+
+    class RefusingGuardrails:
+        async def check_input(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            return GuardrailResponse(
+                decision="refuse", reason="Blocked for security policy."
+            )
+
+        async def check_output(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            return GuardrailResponse(decision="allow")
+
+    deps["guardrails"] = RefusingGuardrails()
+    response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert response.answer == "Blocked for security policy."
+    assert not deps["llm"].received_messages
+
+
+# ── New behavior: guardrails output safe_text override ───────────────────────
+
+
+@pytest.mark.asyncio
+async def test_guardrails_output_safe_text_replaces_answer(
+    _patch_tenant_repo: None,
+) -> None:
+    deps = _base_deps()
+
+    class SanitizingGuardrails:
+        async def check_input(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            return GuardrailResponse(decision="allow")
+
+        async def check_output(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            return GuardrailResponse(
+                decision="allow",
+                safe_text="Sanitized: Tenant-safe response.",
+            )
+
+    deps["guardrails"] = SanitizingGuardrails()
+    response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert response.answer == "Sanitized: Tenant-safe response."
