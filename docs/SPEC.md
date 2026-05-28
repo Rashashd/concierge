@@ -161,6 +161,22 @@ No RLS — readable only by `tenant_manager`, enforced at the repository layer.
 
 ---
 
+### `cost_records`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | `UUID` | PK, `DEFAULT gen_random_uuid()` |
+| `tenant_id` | `UUID` | NOT NULL — no FK to `tenants`, intentional |
+| `model` | `VARCHAR(100)` | NOT NULL — LLM model name, e.g. `'gpt-4o-mini'` |
+| `prompt_tokens` | `INTEGER` | NOT NULL |
+| `completion_tokens` | `INTEGER` | NOT NULL |
+| `total_tokens` | `INTEGER` | NOT NULL |
+| `recorded_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT `now()` |
+
+No FK to `tenants` and no RLS — intentional. Cost records must survive tenant erasure for billing and audit purposes. Accessible only to `tenant_manager` via `GET /tenants/{id}/cost`, enforced at the API layer. One row is written per agent turn via `services/cost.py`.
+
+---
+
 ## 3. Role Model
 
 Three roles, two levels. No configurable permission matrix — these are fixed.
