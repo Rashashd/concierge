@@ -116,3 +116,24 @@ and `context_precision` over this baseline.
 | 2026-05-27 | Baseline (pgvector) | 20 examples, 15 distractors, marker-free chunk text. |
 | 2026-05-27 | Reranker | LLM reranker scores 20 vector candidates, keeps top 5. Improves precision (+21%), answer accuracy (+36%), hit@1 (+14%). Context precision flat - RAGAS judge noise. |
 | 2026-05-28 | Hybrid + Reranker | pgvector + Postgres FTS (0.7/0.3 weights), then reranker. Improves context_precision (+7% vs reranker), hit@1 (+6%), MRR@5 (+2%). Minor precision@5 dip within noise. |
+
+---
+
+## Agent Golden Eval
+
+Deterministic routing eval that verifies `/chat` classifier integration without calling hosted LLMs, Redis, or the model-server.
+
+**Command:** `cd backend && uv run python ../ci/run_agent_golden.py`
+
+**What it covers:**
+- spam → refuse (static response, agent not called)
+- lead → lead capture response
+- escalate → escalation response
+- question → agent/RAG path
+- low confidence → falls back to agent
+- classifier unavailable (null predicate) → falls back to agent
+- classifier failure (raises) → falls back to agent
+- tenant_id override in message → ignored, still uses verified context
+
+**Latest result (2026-05-28):** 8/8 passed, 0 failures.
+

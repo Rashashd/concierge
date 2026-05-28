@@ -18,7 +18,7 @@ from app.schemas import ChatRequest, ChatResponse, TenantContext
 from app.services.agent.graph import run_agent_turn
 from app.services.classifier_router import (
     ClassifierClient,
-    route_conversation,
+    resolve_chat_answer,
 )
 from app.services.memory import RedisMemoryClient, load_history, save_turn
 from app.services.rag import build_pgvector_rag_service
@@ -27,21 +27,6 @@ from app.services.reranker import Reranker
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
-
-REFUSE_MESSAGE = (
-    "I'm sorry, but I can't help with that request. "
-    "Please try again with a different question."
-)
-
-LEAD_MESSAGE = (
-    "I'd love to help! Could you share your contact details "
-    "and a brief description of what you need?"
-)
-
-ESCALATE_MESSAGE = (
-    "This might need a human touch. Please leave your contact info "
-    "and a summary of your issue, and someone will reach out shortly."
-)
 
 
 @router.post("", response_model=ChatResponse)
@@ -64,22 +49,7 @@ async def chat(
         session_id=tenant_context.session_id,
     )
 
-    prediction = None
-    if classifier is not None:
-        try:
-            prediction = await classifier.predict(request.message)
-        except Exception:
-            logger.warning("classifier_unavailable")
-
-    route = route_conversation(prediction)
-
-    if route.action == "refuse":
-        answer = REFUSE_MESSAGE
-    elif route.action == "lead":
-        answer = LEAD_MESSAGE
-    elif route.action == "escalate":
-        answer = ESCALATE_MESSAGE
-    else:
+    async def _run_rag_agent() -> str:
         rag_service = build_pgvector_rag_service(
             session=session,
             embeddings_client=embeddings,
@@ -90,7 +60,7 @@ async def chat(
             hybrid_vector_candidate_count=settings.hybrid_vector_candidate_count,
             hybrid_keyword_candidate_count=settings.hybrid_keyword_candidate_count,
         )
-        answer = await run_agent_turn(
+        return await run_agent_turn(
             llm=llm,
             tenant_context=tenant_context,
             message=request.message,
@@ -98,6 +68,12 @@ async def chat(
             memory_messages=history,
             rag_service=rag_service,
         )
+
+    answer, _ = await resolve_chat_answer(
+        classifier=classifier,
+        message=request.message,
+        run_agent=_run_rag_agent,
+    )
 
     await save_turn(
         redis=redis,

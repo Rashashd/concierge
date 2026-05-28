@@ -4,15 +4,13 @@ import pytest
 from langchain_core.messages import BaseMessage
 from pydantic import SecretStr, ValidationError
 
-from app.api.chat import (
-    ESCALATE_MESSAGE,
-    LEAD_MESSAGE,
-    REFUSE_MESSAGE,
-    chat,
-)
+from app.api.chat import chat
 from app.core.config import Settings
 from app.schemas import ChatRequest, TenantContext
 from app.services.classifier_router import (
+    ESCALATE_MESSAGE,
+    LEAD_MESSAGE,
+    REFUSE_MESSAGE,
     ClassifierPrediction,
     ClassifierScores,
 )
