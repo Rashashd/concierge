@@ -9,12 +9,14 @@ from app.core.dependencies import (
     get_classifier_client,
     get_current_tenant,
     get_embeddings_client,
+    get_guardrails_client,
     get_llm_client,
     get_redis,
     get_redactor,
     get_reranker,
     get_tenant_session,
 )
+from app.infra.guardrails import GuardrailsClient
 from app.repositories import tenants as tenant_repo
 from app.schemas import ChatRequest, ChatResponse, TenantContext
 from app.security.origin import is_origin_allowed
@@ -48,6 +50,7 @@ async def chat(
     classifier: Annotated[
         ClassifierClient | None, Depends(get_classifier_client)
     ],
+    guardrails: Annotated[GuardrailsClient, Depends(get_guardrails_client)],
 ) -> ChatResponse:
     tenant = await tenant_repo.get_by_id(session, tenant_context.tenant_id)
     origin = http_request.headers.get("origin")
@@ -59,6 +62,21 @@ async def chat(
         )
 
     safe_message = redactor.redact(request.message)
+    tenant_guardrail_config: dict = tenant.guardrail_config if tenant else {}
+
+    try:
+        input_check = await guardrails.check_input(
+            tenant_id=tenant_context.tenant_id,
+            message=safe_message,
+            tenant_config=tenant_guardrail_config,
+        )
+        if input_check.decision == "refuse":
+            return ChatResponse(
+                answer=input_check.reason or "I'm sorry, I can't help with that request.",
+                conversation_id=request.conversation_id,
+            )
+    except Exception as exc:
+        logger.warning("guardrails.check_input_failed", error_type=type(exc).__name__)
 
     history = await load_history(
         redis=redis,
@@ -92,6 +110,19 @@ async def chat(
         message=safe_message,
         run_agent=_run_rag_agent,
     )
+
+    try:
+        output_check = await guardrails.check_output(
+            tenant_id=tenant_context.tenant_id,
+            message=answer,
+            tenant_config=tenant_guardrail_config,
+        )
+        if output_check.decision == "allow" and output_check.safe_text:
+            answer = output_check.safe_text
+        elif output_check.decision == "refuse":
+            answer = "I'm sorry, I'm unable to provide that response."
+    except Exception as exc:
+        logger.warning("guardrails.check_output_failed", error_type=type(exc).__name__)
 
     if route.action != "refuse":
         await save_turn(

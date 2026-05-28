@@ -1,30 +1,9 @@
 """Async client for the Concierge classifier model-server."""
 
-from typing import Literal
-
 import httpx
-from pydantic import BaseModel, Field
 
 from app.core.config import Settings
-
-IntentLabel = Literal["spam", "question", "lead", "escalate"]
-RouteHint = Literal[
-    "drop",
-    "rag_search",
-    "capture_lead",
-    "escalate",
-    "agent_handoff",
-]
-
-
-class ClassifierPrediction(BaseModel):
-    """Classifier output returned by the model-server."""
-
-    label: IntentLabel
-    confidence: float = Field(..., ge=0.0, le=1.0)
-    scores: dict[str, float]
-    model_version: str
-    route_hint: RouteHint
+from app.services.classifier_router import ClassifierPrediction, ClassifierScores
 
 
 class ModelServerClient:
@@ -36,21 +15,28 @@ class ModelServerClient:
         self._token = settings.model_server_token.get_secret_value()
 
     def _headers(self) -> dict[str, str]:
-        """Build auth headers for service-to-service calls."""
         if not self._token:
             return {}
         return {"Authorization": f"Bearer {self._token}"}
 
-    async def predict(self, text: str) -> ClassifierPrediction:
+    async def predict(self, message: str) -> ClassifierPrediction:
         """Classify one visitor message."""
         response = await self._http_client.post(
             f"{self._base_url}/predict",
             headers=self._headers(),
-            json={"text": text},
+            json={"text": message},
             timeout=5.0,
         )
         response.raise_for_status()
-        return ClassifierPrediction.model_validate(response.json())
+        data = response.json()
+        raw_scores = data.get("scores", {})
+        data["scores"] = ClassifierScores(
+            spam=float(raw_scores.get("spam", 0.0)),
+            question=float(raw_scores.get("question", 0.0)),
+            lead=float(raw_scores.get("lead", 0.0)),
+            escalate=float(raw_scores.get("escalate", 0.0)),
+        )
+        return ClassifierPrediction.model_validate(data)
 
     async def healthz(self) -> bool:
         """Check model-server health."""

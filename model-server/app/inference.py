@@ -62,7 +62,7 @@ class IntentClassifier:
                 for idx, label in enumerate(self.labels)
             }
 
-        label = max(scores, key=scores.get)
+        label = max(scores, key=lambda k: scores[k])
         confidence = scores[label]
 
         route_hint_by_label = {

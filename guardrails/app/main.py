@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
+import hvac
 import structlog
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from nemoguardrails import LLMRails, RailsConfig
@@ -30,6 +33,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     guardrails_service_token: SecretStr = SecretStr("")
     nemo_enabled: bool = True
+    vault_addr: str = "http://vault:8200"
+    vault_token: SecretStr = SecretStr("")
 
 
 class GuardrailRequest(BaseModel):
@@ -51,6 +56,7 @@ class GuardrailResponse(BaseModel):
     triggered_rules: list[str] = Field(default_factory=list)
 
 
+@lru_cache
 def get_settings() -> Settings:
     """Return sidecar settings."""
     return Settings()
@@ -65,6 +71,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(log_level))
 
     app.state.rails = None
+
+    vault_token = settings.vault_token.get_secret_value()
+    if vault_token:
+        try:
+            vault = hvac.Client(url=settings.vault_addr, token=vault_token)
+            response = vault.secrets.kv.v2.read_secret_version(
+                path="concierge/llm",
+                mount_point="secret",
+            )
+            openai_key = response["data"]["data"].get("openai_api_key", "")
+            if openai_key:
+                os.environ["OPENAI_API_KEY"] = openai_key
+                logger.info("guardrails.vault_key_loaded")
+        except Exception as exc:
+            logger.warning(
+                "guardrails.vault_key_failed", error_type=type(exc).__name__
+            )
 
     if settings.nemo_enabled:
         config = RailsConfig.from_path(str(CONFIG_DIR))
