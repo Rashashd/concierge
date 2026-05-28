@@ -3,12 +3,16 @@
 import uuid
 from typing import Annotated
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_session, require_tenant_manager
+from app.core.config import Settings, get_settings
+from app.core.dependencies import get_redis, get_session, require_tenant_manager
+from app.infra.minio import MinioClient
 from app.repositories import tenants as tenant_repo
 from app.schemas import TenantCreate, TenantResponse, UserContext
+from app.services.erasure import ErasureReport, erase_tenant
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
 
@@ -53,3 +57,28 @@ async def suspend_tenant(
             detail="Tenant not found",
         )
     return TenantResponse.model_validate(tenant)
+
+
+@router.post("/{tenant_id}/erase", response_model=ErasureReport)
+async def erase_tenant_data(
+    tenant_id: uuid.UUID,
+    user: Annotated[UserContext, Depends(require_tenant_manager)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    redis: Annotated[aioredis.Redis, Depends(get_redis)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ErasureReport:
+    async with session.begin():
+        tenant = await tenant_repo.get_by_id(session, tenant_id)
+    if tenant is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found",
+        )
+    return await erase_tenant(
+        tenant_id=tenant_id,
+        actor_id=user.user_id,
+        actor_role=user.role,
+        session=session,
+        redis=redis,
+        minio=MinioClient(settings),
+    )
