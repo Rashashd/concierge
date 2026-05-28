@@ -28,6 +28,22 @@ class TestNormalizeOrigin:
         with pytest.raises(ValueError, match="hostname"):
             normalize_origin("https://")
 
+    def test_raises_on_path(self) -> None:
+        with pytest.raises(ValueError, match="path"):
+            normalize_origin("https://example.com/foo")
+
+    def test_raises_on_query(self) -> None:
+        with pytest.raises(ValueError, match="query"):
+            normalize_origin("https://example.com?x=1")
+
+    def test_raises_on_fragment(self) -> None:
+        with pytest.raises(ValueError, match="fragment"):
+            normalize_origin("https://example.com#section")
+
+    def test_raises_on_userinfo(self) -> None:
+        with pytest.raises(ValueError, match="userinfo"):
+            normalize_origin("https://user@example.com")
+
 
 class TestIsOriginAllowed:
     def test_empty_allowlist_returns_true(self) -> None:
@@ -37,7 +53,10 @@ class TestIsOriginAllowed:
         assert is_origin_allowed(None, ["https://example.com"]) is False
 
     def test_exact_allowed_origin_passes(self) -> None:
-        assert is_origin_allowed("https://example.com", ["https://example.com"]) is True
+        assert (
+            is_origin_allowed("https://example.com", ["https://example.com"])
+            is True
+        )
 
     def test_normalized_allowed_origin_passes(self) -> None:
         assert (
@@ -60,9 +79,22 @@ class TestIsOriginAllowed:
 
     def test_invalid_configured_origin_is_ignored(self) -> None:
         assert (
-            is_origin_allowed("https://safe.com", ["    ", "https://safe.com"])
+            is_origin_allowed(
+                "https://safe.com", ["    ", "https://safe.com"]
+            )
             is True
         )
 
     def test_non_http_origin_returns_false(self) -> None:
-        assert is_origin_allowed("ftp://example.com", ["https://example.com"]) is False
+        assert (
+            is_origin_allowed("ftp://example.com", ["https://example.com"])
+            is False
+        )
+
+    def test_origin_with_path_rejected_even_if_host_allowed(self) -> None:
+        assert (
+            is_origin_allowed(
+                "https://example.com/foo", ["https://example.com"]
+            )
+            is False
+        )
