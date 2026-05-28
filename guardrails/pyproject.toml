@@ -1,27 +1,17 @@
-[build-system]
-requires = ["setuptools>=69", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "concierge-model-server"
+name = "concierge-guardrails"
 version = "0.1.0"
-description = "Lean classifier service for Concierge"
+description = "NeMo Guardrails sidecar for Concierge"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
-    "numpy>=1.26.0",
-    "scikit-learn>=1.5.0",
-    "joblib>=1.4.0",
-    "onnxruntime>=1.18.0",
-    "structlog>=24.4.0"
+    "structlog>=24.4.0",
+    "nemoguardrails>=0.16.0",
+    "langchain-openai>=0.2.0"
 ]
-
-[tool.setuptools.packages.find]
-include = ["app*"]
-exclude = ["artifacts*"]
 
 [dependency-groups]
 dev = [
@@ -43,3 +33,11 @@ strict = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["config*"]

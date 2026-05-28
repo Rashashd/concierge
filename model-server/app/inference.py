@@ -8,7 +8,6 @@ import joblib
 import numpy as np
 import onnxruntime as ort
 
-
 ARTIFACT_DIR = Path(__file__).resolve().parents[1] / "artifacts"
 METADATA_PATH = ARTIFACT_DIR / "classifier_metadata.json"
 
