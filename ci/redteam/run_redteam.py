@@ -10,10 +10,9 @@ from typing import Any
 
 import yaml
 
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 GUARDRAILS_DIR = REPO_ROOT / "guardrails"
-PROBES_PATH = REPO_ROOT / "ci" / "redteam_probes.json"
+PROBES_PATH = Path(__file__).with_name("redteam_probes.json")
 THRESHOLDS_PATH = REPO_ROOT / "ci" / "eval_thresholds.yaml"
 
 sys.path.insert(0, str(GUARDRAILS_DIR))

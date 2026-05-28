@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-CI_DIR = str(REPO_ROOT / "ci")
+CI_DIR = str(REPO_ROOT / "ci" / "agent")
 BACKEND_DIR = str(REPO_ROOT / "backend")
 
 if CI_DIR not in sys.path:

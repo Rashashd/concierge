@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.append(str(REPO_ROOT / "ci"))
+sys.path.append(str(REPO_ROOT / "ci" / "rag"))
 
 from run_rag_golden import (  # noqa: E402
     _fixture_path,
@@ -156,6 +156,7 @@ def test_distractor_manifest_valid() -> None:
     distractor_path = (
         Path(__file__).resolve().parents[3]
         / "ci"
+        / "rag"
         / "rag_eval_distractors.json"
     )
     with distractor_path.open("r", encoding="utf-8") as f:
