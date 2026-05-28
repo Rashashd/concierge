@@ -76,6 +76,8 @@ async def chat(
                 or "I'm sorry, I can't help with that request.",
                 conversation_id=request.conversation_id,
             )
+        if input_check.safe_text:
+            safe_message = input_check.safe_text
     except Exception as exc:
         logger.warning("guardrails.check_input_failed", error_type=type(exc).__name__)
 

@@ -139,6 +139,7 @@ services:
       VAULT_TOKEN: ${VAULT_TOKEN}
       LOG_LEVEL: INFO
       NEMO_ENABLED: ${NEMO_ENABLED:-true}
+      GUARDRAILS_SERVICE_TOKEN: ${GUARDRAILS_SERVICE_TOKEN:-local-guardrails-token}
     ports:
       - "8002:8002"
     depends_on:
