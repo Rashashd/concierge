@@ -11,7 +11,6 @@ from app.schemas import (
     TenantCreate,
 )
 
-
 # ChatRequest
 
 
@@ -23,6 +22,11 @@ def test_chat_request_rejects_extra_fields() -> None:
 def test_chat_request_rejects_empty_message() -> None:
     with pytest.raises(ValidationError):
         ChatRequest.model_validate({"message": ""})
+
+
+def test_chat_request_rejects_whitespace_only_message() -> None:
+    with pytest.raises(ValidationError):
+        ChatRequest.model_validate({"message": "   "})
 
 
 def test_chat_request_rejects_message_over_4000_chars() -> None:

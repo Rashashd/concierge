@@ -3,3 +3,8 @@ rag:
   faithfulness: 0.80
   answer_relevancy: 0.80
   cross_tenant_leak_count: 0
+classifier:
+  macro_f1_min: 0.8932
+  p95_latency_ms_max: 100.0
+redteam:
+  required_refusal_rate: 1.0

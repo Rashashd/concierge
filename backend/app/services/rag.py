@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import chunks as chunk_repo
 from app.schemas import ChunkReference, RAGSearchOutput, ToolError
+from app.services.reranker import RerankCandidate, Reranker
 
 
 class RetrievedChunk(BaseModel):
@@ -16,9 +17,15 @@ class RetrievedChunk(BaseModel):
 
 
 type ChunkRetriever = Callable[
-    [UUID, list[float], int],
+    [UUID, str, list[float], int],
     Awaitable[Sequence[RetrievedChunk]],
 ]
+
+_DEFAULT_RERANK_CANDIDATE_COUNT = 20
+
+
+def _rerank_candidate_count(top_k: int) -> int:
+    return min(max(top_k * 4, 12), 20)
 
 
 class RAGService:
@@ -26,9 +33,11 @@ class RAGService:
         self,
         embeddings_client: object | None,
         chunk_retriever: ChunkRetriever | None,
+        reranker: Reranker | None = None,
     ) -> None:
         self._embeddings_client = embeddings_client
         self._chunk_retriever = chunk_retriever
+        self._reranker = reranker
 
     async def search(
         self,
@@ -45,7 +54,14 @@ class RAGService:
 
         try:
             embedding = await self.embed_query(query)
-            chunks = await self._chunk_retriever(tenant_id, embedding, top_k)
+            candidate_count = (
+                _rerank_candidate_count(top_k)
+                if self._reranker is not None
+                else top_k
+            )
+            chunks = await self._chunk_retriever(
+                tenant_id, query, embedding, candidate_count
+            )
         except RuntimeError as exc:
             return ToolError(
                 tool="rag_search",
@@ -60,6 +76,13 @@ class RAGService:
                 message="No tenant content matched the question.",
             )
 
+        if self._reranker is not None and len(chunks) > top_k:
+            chunks = await self._rerank_and_truncate(
+                query=query, chunks=chunks, top_k=top_k
+            )
+        else:
+            chunks = chunks[:top_k]
+
         return RAGSearchOutput(
             answer=synthesize_answer(query=query, chunks=chunks),
             source_chunks=[
@@ -72,6 +95,36 @@ class RAGService:
                 for chunk in chunks
             ],
         )
+
+    async def _rerank_and_truncate(
+        self,
+        query: str,
+        chunks: Sequence[RetrievedChunk],
+        top_k: int,
+    ) -> Sequence[RetrievedChunk]:
+        candidates = [
+            RerankCandidate(
+                index=i,
+                chunk_id=str(chunk.chunk_id),
+                text=chunk.text,
+            )
+            for i, chunk in enumerate(chunks)
+        ]
+        try:
+            decisions = await self._reranker.rerank(
+                query=query, candidates=candidates
+            )
+        except Exception:
+            return chunks[:top_k]
+
+        score_map = {d.index: d.score for d in decisions}
+        indexed = list(enumerate(chunks))
+        reranked = sorted(
+            indexed,
+            key=lambda pair: score_map.get(pair[0], 0.0),
+            reverse=True,
+        )
+        return [chunk for _, chunk in reranked][:top_k]
 
     async def embed_query(self, query: str) -> list[float]:
         if self._embeddings_client is None:
@@ -102,18 +155,37 @@ def build_unwired_rag_service() -> RAGService:
 def build_pgvector_rag_service(
     session: AsyncSession,
     embeddings_client: object,
+    reranker: Reranker | None = None,
+    retrieval_mode: str = "vector",
+    hybrid_vector_weight: float = 0.7,
+    hybrid_keyword_weight: float = 0.3,
+    hybrid_vector_candidate_count: int = 20,
+    hybrid_keyword_candidate_count: int = 20,
 ) -> RAGService:
     async def retrieve_chunks(
         tenant_id: UUID,
+        query: str,
         embedding: list[float],
         top_k: int,
     ) -> Sequence[RetrievedChunk]:
-        chunks = await chunk_repo.search_with_scores(
-            session=session,
-            tenant_id=tenant_id,
-            query_embedding=embedding,
-            k=top_k,
-        )
+        if retrieval_mode == "hybrid":
+            results = await chunk_repo.hybrid_search(
+                session=session,
+                tenant_id=tenant_id,
+                query_embedding=embedding,
+                query=query,
+                vector_weight=hybrid_vector_weight,
+                keyword_weight=hybrid_keyword_weight,
+                vector_k=hybrid_vector_candidate_count,
+                keyword_k=hybrid_keyword_candidate_count,
+            )
+        else:
+            results = await chunk_repo.search_with_scores(
+                session=session,
+                tenant_id=tenant_id,
+                query_embedding=embedding,
+                k=top_k,
+            )
         return [
             RetrievedChunk(
                 chunk_id=chunk.id,
@@ -121,10 +193,11 @@ def build_pgvector_rag_service(
                 text=chunk.text,
                 score=score,
             )
-            for chunk, score in chunks
+            for chunk, score in results
         ]
 
     return RAGService(
         embeddings_client=embeddings_client,
         chunk_retriever=retrieve_chunks,
+        reranker=reranker,
     )

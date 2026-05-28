@@ -1,0 +1,77 @@
+[
+  {
+    "tenant_slug": "rag-eval-alpha",
+    "content_title": "Alpha Clinic Archived Operations Notes",
+    "fixture_path": "distractors/alpha-archived-operations.md"
+  },
+  {
+    "tenant_slug": "rag-eval-alpha",
+    "content_title": "Alpha Clinic Draft Scheduling Policy",
+    "fixture_path": "distractors/alpha-draft-scheduling-policy.md"
+  },
+  {
+    "tenant_slug": "rag-eval-alpha",
+    "content_title": "Alpha Clinic Internal Staff Handbook",
+    "fixture_path": "distractors/alpha-internal-staff-handbook.md"
+  },
+  {
+    "tenant_slug": "rag-eval-alpha",
+    "content_title": "Alpha Clinic Holiday Schedule Archive",
+    "fixture_path": "distractors/alpha-holiday-schedule-archive.md"
+  },
+  {
+    "tenant_slug": "rag-eval-alpha",
+    "content_title": "Alpha Clinic Research Study Intake Guide",
+    "fixture_path": "distractors/alpha-research-intake-guide.md"
+  },
+  {
+    "tenant_slug": "rag-eval-beta",
+    "content_title": "Beta Outfitters Seasonal Policy Archive",
+    "fixture_path": "distractors/beta-seasonal-policy-archive.md"
+  },
+  {
+    "tenant_slug": "rag-eval-beta",
+    "content_title": "Beta Outfitters Draft Holiday Shipping Guide",
+    "fixture_path": "distractors/beta-draft-holiday-shipping.md"
+  },
+  {
+    "tenant_slug": "rag-eval-beta",
+    "content_title": "Beta Outfitters Internal Warehouse Procedures",
+    "fixture_path": "distractors/beta-internal-warehouse-procedures.md"
+  },
+  {
+    "tenant_slug": "rag-eval-beta",
+    "content_title": "Beta Outfitters Outlet Store Policy Archive",
+    "fixture_path": "distractors/beta-outlet-policy-archive.md"
+  },
+  {
+    "tenant_slug": "rag-eval-beta",
+    "content_title": "Beta Outfitters Vendor Return Agreement",
+    "fixture_path": "distractors/beta-vendor-return-agreement.md"
+  },
+  {
+    "tenant_slug": "rag-eval-gamma",
+    "content_title": "Gamma Software Legacy Admin Handbook",
+    "fixture_path": "distractors/gamma-legacy-admin-handbook.md"
+  },
+  {
+    "tenant_slug": "rag-eval-gamma",
+    "content_title": "Gamma Software Draft Enterprise Onboarding Plan",
+    "fixture_path": "distractors/gamma-draft-enterprise-onboarding.md"
+  },
+  {
+    "tenant_slug": "rag-eval-gamma",
+    "content_title": "Gamma Software Internal Admin Runbook",
+    "fixture_path": "distractors/gamma-internal-admin-runbook.md"
+  },
+  {
+    "tenant_slug": "rag-eval-gamma",
+    "content_title": "Gamma Software Legacy Platform Documentation",
+    "fixture_path": "distractors/gamma-legacy-platform-docs.md"
+  },
+  {
+    "tenant_slug": "rag-eval-gamma",
+    "content_title": "Gamma Software Partner Integration Guide",
+    "fixture_path": "distractors/gamma-partner-integration-guide.md"
+  }
+]
