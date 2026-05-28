@@ -111,8 +111,12 @@ def main() -> None:
         client,
         "concierge/services",
         {
-            "model_server": "local-model-server-token",
-            "guardrails": "local-guardrails-token",
+            "model_server": env.get(
+                "MODEL_SERVER_SERVICE_TOKEN", "local-model-server-token"
+            ),
+            "guardrails": env.get(
+                "GUARDRAILS_SERVICE_TOKEN", "local-guardrails-token"
+            ),
         },
     )
     _write_secret(
