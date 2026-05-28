@@ -2,7 +2,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi_users import schemas as fu_schemas
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TenantContext(BaseModel):
@@ -22,6 +22,13 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = Field(default=None, max_length=255)
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("message")
+    @classmethod
+    def message_must_not_be_whitespace_only(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("message must not be empty or whitespace-only")
+        return v
 
 
 class ChatResponse(BaseModel):

@@ -31,10 +31,12 @@ async def test_rag_search_uses_injected_tenant_id() -> None:
 
     async def retrieve_chunks(
         received_tenant_id: object,
+        query: object,
         embedding: object,
         top_k: object,
     ) -> list[RetrievedChunk]:
         assert received_tenant_id == tenant_id
+        assert query == "What are your hours?"
         assert embedding == [0.4, 0.5]
         assert top_k == 5
         return [

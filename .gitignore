@@ -1,6 +1,7 @@
 # Secrets
 .env
 seed.sh
+seed.example.sh
 
 # AI assistant config (personal/team-specific)
 CLAUDE.md
@@ -8,7 +9,7 @@ AGENTS.md
 instructions/
 
 # Python
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyo
 .venv/

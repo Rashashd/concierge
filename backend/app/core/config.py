@@ -68,6 +68,18 @@ class Settings(BaseSettings):
     langchain_api_key: SecretStr = SecretStr("")
     langchain_project: str = "concierge"
 
+    reranker_provider: Literal["llm", "cohere"] = "llm"
+    cohere_api_key: SecretStr = SecretStr("")
+    cohere_rerank_model: str = "rerank-v4.0-fast"
+    reranker_timeout_seconds: float = 10.0
+    reranker_max_retries: int = 2
+
+    rag_retrieval_mode: Literal["vector", "hybrid"] = "hybrid"
+    hybrid_vector_weight: float = 0.7
+    hybrid_keyword_weight: float = 0.3
+    hybrid_keyword_candidate_count: int = 20
+    hybrid_vector_candidate_count: int = 20
+
     def validate_fully_loaded(self) -> None:
         """Raise ValueError for blank required secrets after Vault load."""
         errors: list[str] = []
@@ -94,6 +106,15 @@ class Settings(BaseSettings):
 
         if self.langchain_tracing_v2 and not self.langchain_api_key.get_secret_value():
             errors.append("langchain_api_key (required when langchain_tracing_v2=true)")
+
+        if self.reranker_provider not in ("llm", "cohere"):
+            errors.append("reranker_provider (must be 'llm' or 'cohere')")
+
+        if (
+            self.reranker_provider == "cohere"
+            and not self.cohere_api_key.get_secret_value()
+        ):
+            errors.append("cohere_api_key (required when reranker_provider=cohere)")
 
         if errors:
             raise ValueError(
