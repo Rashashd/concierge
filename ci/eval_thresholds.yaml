@@ -8,3 +8,5 @@ classifier:
   p95_latency_ms_max: 100.0
 redteam:
   required_refusal_rate: 1.0
+agent:
+  tool_selection_accuracy_min: 0.30

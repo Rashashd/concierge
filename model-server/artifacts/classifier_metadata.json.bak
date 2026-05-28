@@ -1,0 +1,84 @@
+{
+  "artifact_hashes": {
+    "classifier.joblib": "e4f16974584128d61a9a9a07f197d6de5624fc7901edd20ffcf656ececf3d2d3",
+    "classifier.onnx": "a564404e55503a03b577cd8134994b59e7beca828134999b93d44cdef9423709",
+    "dl_vectorizer.joblib": "7a2f8ff5168b6e114876c6ad69a994731425b35c12af280fef783dc5bc1b6185"
+  },
+  "confidence_threshold": 0.7,
+  "dataset_hash": "894e9a9c6ac512789458f5385839347eb68ace52fc2b6158e89ceb53d54cf350",
+  "dataset_sources": [
+    "SMS Spam Collection",
+    "CLINC150 / clinc_oos"
+  ],
+  "id_to_label": {
+    "0": "spam",
+    "1": "question",
+    "2": "lead",
+    "3": "escalate"
+  },
+  "label_to_id": {
+    "escalate": 3,
+    "lead": 2,
+    "question": 1,
+    "spam": 0
+  },
+  "labels": [
+    "spam",
+    "question",
+    "lead",
+    "escalate"
+  ],
+  "model_version": "intent-router-v1",
+  "project_name": "concierge-intent-classifier",
+  "results": {
+    "classical_tfidf_logistic_regression": {
+      "avg_latency_ms": 0.9465313040000183,
+      "estimated_cost_usd": 0.0,
+      "macro_f1": 0.9431985795973392,
+      "name": "classical_tfidf_logistic_regression",
+      "notes": "Training completed in 0.43 seconds. Exported with joblib.",
+      "p95_latency_ms": 1.2592683499860868,
+      "per_class_f1": {
+        "escalate": 0.9333333333333333,
+        "lead": 0.9620253164556962,
+        "question": 0.9135802469135802,
+        "spam": 0.963855421686747
+      },
+      "weighted_f1": 0.9432606251713267
+    },
+    "groq_zero_shot_llama-3.3-70b-versatile": {
+      "avg_latency_ms": 1512.4954345999981,
+      "estimated_cost_usd": null,
+      "macro_f1": 0.7830387205387206,
+      "name": "groq_zero_shot_llama-3.3-70b-versatile",
+      "notes": "Groq hosted-API zero-shot baseline. Evaluated on a subset by default to control cost and latency.",
+      "p95_latency_ms": 1512.4954345999981,
+      "per_class_f1": {
+        "escalate": 0.85,
+        "lead": 0.5185185185185185,
+        "question": 0.7636363636363637,
+        "spam": 1.0
+      },
+      "weighted_f1": 0.7809890572390572
+    },
+    "small_dl_tfidf_mlp": {
+      "avg_latency_ms": 2.9231459500151686,
+      "estimated_cost_usd": 0.0,
+      "macro_f1": 0.9627045534834652,
+      "name": "small_dl_tfidf_mlp",
+      "notes": "Small PyTorch MLP trained offline in Colab and exported to ONNX.",
+      "p95_latency_ms": 6.706127949837536,
+      "per_class_f1": {
+        "escalate": 0.9736842105263158,
+        "lead": 0.9629629629629629,
+        "question": 0.926829268292683,
+        "spam": 0.9873417721518988
+      },
+      "weighted_f1": 0.9626354990366547
+    }
+  },
+  "serving_method": "sklearn/joblib",
+  "shipped_model": "classical",
+  "shipped_reason": "Classical TF-IDF + Logistic Regression is within 0.02 macro-F1 of the DL model and is simpler, faster, cheaper, and easier to serve.",
+  "task": "visitor_intent_classification"
+}
