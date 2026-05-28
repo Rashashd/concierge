@@ -69,17 +69,18 @@ async def chat(
             rag_service=rag_service,
         )
 
-    answer, _ = await resolve_chat_answer(
+    answer, route = await resolve_chat_answer(
         classifier=classifier,
         message=request.message,
         run_agent=_run_rag_agent,
     )
 
-    await save_turn(
-        redis=redis,
-        tenant_id=tenant_context.tenant_id,
-        session_id=tenant_context.session_id,
-        user_message=request.message,
-        assistant_message=answer,
-    )
+    if route.action != "refuse":
+        await save_turn(
+            redis=redis,
+            tenant_id=tenant_context.tenant_id,
+            session_id=tenant_context.session_id,
+            user_message=request.message,
+            assistant_message=answer,
+        )
     return ChatResponse(answer=answer, conversation_id=request.conversation_id)

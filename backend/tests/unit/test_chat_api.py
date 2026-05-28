@@ -172,7 +172,7 @@ async def test_spam_route_does_not_call_llm() -> None:
 
 
 @pytest.mark.asyncio
-async def test_spam_route_saves_memory() -> None:
+async def test_spam_route_does_not_save_memory() -> None:
     deps = _base_deps()
     prediction = _make_prediction("spam", "drop")
 
@@ -186,7 +186,7 @@ async def test_spam_route_saves_memory() -> None:
     key = build_session_key(
         deps["tenant_context"].tenant_id, deps["tenant_context"].session_id
     )
-    assert len(deps["redis"].lists[key]) == 2
+    assert key not in deps["redis"].lists
 
 
 @pytest.mark.asyncio
