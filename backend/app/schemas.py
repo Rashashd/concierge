@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Literal
 from uuid import UUID
 
@@ -78,8 +79,7 @@ class ChatRouteStatus(BaseModel):
     route: Literal["agent"] = "agent"
 
 
-# ── Tool contracts (from SPEC.md §4) ─────────────────────────────────────────
-
+# Tool contracts
 
 class CaptureLeadInput(BaseModel):
     visitor_name: str | None = Field(default=None, max_length=255)
@@ -108,7 +108,14 @@ class EscalateOutput(BaseModel):
     visitor_message: str
 
 
-# ── Tenant provisioning ───────────────────────────────────────────────────────
+# Tenant provisioning
+
+class TenantCostResponse(BaseModel):
+    tenant_id: UUID
+    day: date
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
 
 
 class TenantCreate(BaseModel):
@@ -128,7 +135,6 @@ class TenantResponse(BaseModel):
 
 
 # User schemas for fastapi-users
-
 
 class UserRead(fu_schemas.BaseUser[UUID]):
     role: str
