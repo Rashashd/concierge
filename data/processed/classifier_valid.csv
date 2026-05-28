@@ -1,0 +1,159 @@
+text,label,source_dataset,source_label
+please book a meeting room for thusday at 4:00,lead,DeepPavlov/clinc_oos,18
+when did i take my car to the mechanic,question,DeepPavlov/clinc_oos,37
+is there a certain type of gas i need to use for this car,question,DeepPavlov/clinc_oos,8
+how are things,question,DeepPavlov/clinc_oos,82
+help me figure out where this fraudulent transaction from google came from on my account,escalate,DeepPavlov/clinc_oos,70
+do i need a socket converter if i'm going to be in germany,question,DeepPavlov/clinc_oos,120
+ASKED 3MOBILE IF 0870 CHATLINES INCLU IN FREE MINS. INDIA CUST SERVs SED YES. L8ER GOT MEGA BILL. 3 DONT GIV A SHIT. BAILIFF DUE IN DAYS. I O £250 3 WANT £800,spam,SMS Spam Collection,spam
+how can i change information on my insurance policy,lead,DeepPavlov/clinc_oos,64
+tell me what i can find on the shopping list,question,DeepPavlov/clinc_oos,43
+could you be a real person,escalate,DeepPavlov/clinc_oos,117
+how do i report my lost card,escalate,DeepPavlov/clinc_oos,12
+book an appointment for an oil change,lead,DeepPavlov/clinc_oos,131
+i want to find out how do i schedule a meeting,lead,DeepPavlov/clinc_oos,18
+why was my card declined,escalate,DeepPavlov/clinc_oos,49
+Valentines Day Special! Win over £1000 in our quiz and take your partner on the trip of a lifetime! Send GO to 83600 now. 150p/msg rcvd. CustCare:08718720201.,spam,SMS Spam Collection,spam
+WINNER!! As a valued network customer you have been selected to receivea £900 prize reward! To claim call 09061701461. Claim code KL341. Valid 12 hours only.,spam,SMS Spam Collection,spam
+From next month get upto 50% More Calls 4 Ur standard network charge 2 activate Call 9061100010 C Wire3.net 1st4Terms PoBox84 M26 3UZ Cost £1.50 min MobcudB more,spam,SMS Spam Collection,spam
+i'm reporting fraudelent activity on my card,escalate,DeepPavlov/clinc_oos,70
+Want the latest Video handset? 750 anytime any network mins? Half price line rental? Reply or call 08000930705 for delivery tomorrow,spam,SMS Spam Collection,spam
+am i able to place a pto request for february 20-25,lead,DeepPavlov/clinc_oos,97
+it seems that there's fraudulent activity on my card i'd like to file a report,escalate,DeepPavlov/clinc_oos,70
+Can U get 2 phone NOW? I wanna chat 2 set up meet Call me NOW on 09096102316 U can cum here 2moro Luv JANE xx Calls£1/minmoremobsEMSPOBox45PO139WA,spam,SMS Spam Collection,spam
+are there any travel alerts in that region,question,DeepPavlov/clinc_oos,128
+is there anything real about you,question,DeepPavlov/clinc_oos,117
+do you have a car rental in new york from june 6th to june 9th,lead,DeepPavlov/clinc_oos,40
+"500 New Mobiles from 2004, MUST GO! Txt: NOKIA to No: 89545 & collect yours today!From ONLY £1 www.4-tc.biz 2optout 087187262701.50gbp/mtmsg18",spam,SMS Spam Collection,spam
+assist me in getting a car rental,lead,DeepPavlov/clinc_oos,40
+where do i report that my card was lost,question,DeepPavlov/clinc_oos,12
+can you schedule a meeting with john for 12,lead,DeepPavlov/clinc_oos,18
+what sort of fuel does this car take,question,DeepPavlov/clinc_oos,8
+make a pto request for dates november 11 to black friday,lead,DeepPavlov/clinc_oos,97
+tell me what is on my reminder list,question,DeepPavlov/clinc_oos,76
+tell me the name of my insurance plan,lead,DeepPavlov/clinc_oos,74
+i'm pretty sure this charge is fraudulent,escalate,DeepPavlov/clinc_oos,70
+tell me what kind of pets you have,question,DeepPavlov/clinc_oos,34
+what is the process of reporting a lost card,escalate,DeepPavlov/clinc_oos,12
+i was trying to buy a chainsaw at the tractor store and they said my card was declined,escalate,DeepPavlov/clinc_oos,49
+tell me who is by the garage door,question,DeepPavlov/clinc_oos,10
+"Double Mins & 1000 txts on Orange tariffs. Latest Motorola, SonyEricsson & Nokia with Bluetooth FREE! Call MobileUpd8 on 08000839402 or call2optout/HF8",spam,SMS Spam Collection,spam
+are there good clam places in cleveland,question,DeepPavlov/clinc_oos,145
+Text PASS to 69669 to collect your polyphonic ringtones. Normal gprs charges apply only. Enjoy your tones,spam,SMS Spam Collection,spam
+what can i ask you to accomplish,question,DeepPavlov/clinc_oos,115
+Bored housewives! Chat n date now! 0871750.77.11! BT-national rate 10p/min only from landlines!,spam,SMS Spam Collection,spam
+"For ur chance to win a £250 cash every wk TXT: ACTION to 80608. T's&C's www.movietrivia.tv custcare 08712405022, 1x150p/wk.",spam,SMS Spam Collection,spam
+how might i go about jump starting a car,question,DeepPavlov/clinc_oos,17
+why was my card declined yesterday,escalate,DeepPavlov/clinc_oos,49
+book a reservation for 4 at outback steakhouse under the name dave,lead,DeepPavlov/clinc_oos,23
+i would like to get a new insurance plan,lead,DeepPavlov/clinc_oos,64
+how many gallons do i have left,question,DeepPavlov/clinc_oos,110
+what plug type does russia use,question,DeepPavlov/clinc_oos,120
+i need to make a report due to fraudulent activity on my card,escalate,DeepPavlov/clinc_oos,70
+"Claim a 200 shopping spree, just call 08717895698 now! Have you won! MobStoreQuiz10ppm",spam,SMS Spam Collection,spam
+how can i pay my bill,question,DeepPavlov/clinc_oos,111
+"You have been specially selected to receive a ""3000 award! Call 08712402050 BEFORE the lines close. Cost 10ppm. 16+. T&Cs apply. AG Promo",spam,SMS Spam Collection,spam
+i want you to make me a pto request for me for april twenty through may two,lead,DeepPavlov/clinc_oos,97
+can you tell me how you're doing today,question,DeepPavlov/clinc_oos,82
+how do i go about getting cash for my card points accumulated,question,DeepPavlov/clinc_oos,6
+You have an important customer service announcement from PREMIER. Call FREEPHONE 0800 542 0578 now!,spam,SMS Spam Collection,spam
+"Call 09094100151 to use ur mins! Calls cast 10p/min (mob vary). Service provided by AOM, just GBP5/month. AOM Box61,M60 1ER until u stop. Ages 18+ only!",spam,SMS Spam Collection,spam
+how much longer until my credit card expires,question,DeepPavlov/clinc_oos,44
+i wanna know why my card was declined,escalate,DeepPavlov/clinc_oos,49
+"i need to book a hotel in ny, queens arrive on 8th and leave on the 13th",lead,DeepPavlov/clinc_oos,116
+can i put in a pto request for august 1st to august 10th,lead,DeepPavlov/clinc_oos,97
+FREEMSG: Our records indicate you may be entitled to 3750 pounds for the Accident you had. To claim for free reply with YES to this msg. To opt out text STOP,spam,SMS Spam Collection,spam
+under the name zebee book a reservation at the xenophobe for 3,lead,DeepPavlov/clinc_oos,23
+how can i make chicken pot pie,question,DeepPavlov/clinc_oos,104
+"Hello from Orange. For 1 month's free access to games, news and sport, plus 10 free texts and 20 photo messages, reply YES. Terms apply: www.orange.co.uk/ow",spam,SMS Spam Collection,spam
+You have WON a guaranteed £1000 cash or a £2000 prize. To claim yr prize call our customer service representative on 08714712412 between 10am-7pm Cost 10p,spam,SMS Spam Collection,spam
+what do i need to buy for spaghetti,question,DeepPavlov/clinc_oos,112
+what things do you enjoy doing,question,DeepPavlov/clinc_oos,15
+reserve a table at tropicana for 5 people under the name martins for 8pm,lead,DeepPavlov/clinc_oos,23
+PRIVATE! Your 2003 Account Statement for 078,spam,SMS Spam Collection,spam
+what is the name of my insurance plan,lead,DeepPavlov/clinc_oos,74
+please look up if i can rent a car in houston from march 25 to march 29,lead,DeepPavlov/clinc_oos,40
+help me tell visa about fraud on my account,escalate,DeepPavlov/clinc_oos,70
+what's the name of my health insurance plan,lead,DeepPavlov/clinc_oos,74
+please tell me how to pay my gas bill,question,DeepPavlov/clinc_oos,111
+XMAS Prize draws! We are trying to contact U. Todays draw shows that you have won a £2000 prize GUARANTEED. Call 09058094565 from land line. Valid 12hrs only,spam,SMS Spam Collection,spam
+what mexican restaurant within 5 miles has the best reviews,question,DeepPavlov/clinc_oos,145
+"at noon, schedule a meeting with saul",lead,DeepPavlov/clinc_oos,18
+can you put in a pto request for the 5th of june to june 8th,lead,DeepPavlov/clinc_oos,97
+what are the review for mcdonald's,question,DeepPavlov/clinc_oos,0
+can i hear the song after this one,question,DeepPavlov/clinc_oos,118
+i may have had fraud committed on my account,escalate,DeepPavlov/clinc_oos,70
+can you make a reservation at michael's,lead,DeepPavlov/clinc_oos,9
+are you a real person or a bot,escalate,DeepPavlov/clinc_oos,117
+how do i tell mastercard about a fraudulent charge,escalate,DeepPavlov/clinc_oos,70
+help me report a lost card,escalate,DeepPavlov/clinc_oos,12
+can i put in a pto request for january 4th to january 9th,lead,DeepPavlov/clinc_oos,97
+"tell me why my card was declined at auto zone, why",escalate,DeepPavlov/clinc_oos,49
+how do i book a vacation,lead,DeepPavlov/clinc_oos,97
+my account has a fraudulent transaction i think,escalate,DeepPavlov/clinc_oos,70
+help me switch to a new insurance plan,lead,DeepPavlov/clinc_oos,64
+turns out my card was declined at wal mart and i wanna know why,escalate,DeepPavlov/clinc_oos,49
+for march 1 to 2 make a pto request for me,lead,DeepPavlov/clinc_oos,97
+i want to report fraudulent activity on my discover card,escalate,DeepPavlov/clinc_oos,70
+This msg is for your mobile content order It has been resent as previous attempt failed due to network error Queries to customersqueries@netvision.uk.com,spam,SMS Spam Collection,spam
+"Someone has contacted our dating service and entered your phone becausethey fancy you! To find out who it is call from a landline 09058098002. PoBox1, W14RG 150p",spam,SMS Spam Collection,spam
+"book a flight from miami, fl to columbus, ga on 16 february 2019 and returning on 2 march 2019",lead,DeepPavlov/clinc_oos,63
+Ur cash-balance is currently 500 pounds - to maximize ur cash-in now send GO to 86688 only 150p/msg. CC 08718720201 HG/Suite342/2Lands Row/W1J6HL,spam,SMS Spam Collection,spam
+in o'hare lost luggage on flight america airlines,escalate,DeepPavlov/clinc_oos,113
+i need to know how to schedule a meeting,lead,DeepPavlov/clinc_oos,18
+"pdate_Now - Double mins and 1000 txts on Orange tariffs. Latest Motorola, SonyEricsson & Nokia & Bluetooth FREE! Call MobileUpd8 on 08000839402 or call2optout/!YHL",spam,SMS Spam Collection,spam
+where do i report fraud on my credit card,escalate,DeepPavlov/clinc_oos,70
+Our brand new mobile music service is now live. The free music player will arrive shortly. Just install on your phone to browse content from the top artists.,spam,SMS Spam Collection,spam
+make a pto request from dates may 3 to 9,lead,DeepPavlov/clinc_oos,97
+i need to report a stolen card,escalate,DeepPavlov/clinc_oos,12
+i tried to make a purchase yesterday but my card was declined why,escalate,DeepPavlov/clinc_oos,49
+"FreeMsg: Claim ur 250 SMS messages-Text OK to 84025 now!Use web2mobile 2 ur mates etc. Join Txt250.com for 1.50p/wk. T&C BOX139, LA32WU. 16 . Remove txtX or stop",spam,SMS Spam Collection,spam
+Free video camera phones with Half Price line rental for 12 mths and 500 cross ntwk mins 100 txts. Call MobileUpd8 08001950382 or Call2OptOut/674,spam,SMS Spam Collection,spam
+how do i see me rewards for my chase card,question,DeepPavlov/clinc_oos,50
+at target trying to buy a mug and my card was declined,escalate,DeepPavlov/clinc_oos,49
+More people are dogging in your area now. Call 09090204448 and join like minded guys. Why not arrange 1 yourself. There's 1 this evening. A£1.50 minAPN LS278BB,spam,SMS Spam Collection,spam
+"YOU VE WON! Your 4* Costa Del Sol Holiday or £5000 await collection. Call 09050090044 Now toClaim. SAE, TC s, POBox334, Stockport, SK38xh, Cost£1.50/pm, Max10mins",spam,SMS Spam Collection,spam
+can you schedule a meeting for me,lead,DeepPavlov/clinc_oos,18
+i would like to report a stolen card,escalate,DeepPavlov/clinc_oos,12
+what is the credit limit on my visa,question,DeepPavlov/clinc_oos,41
+schedule a meeting for me,lead,DeepPavlov/clinc_oos,18
+i have a fraudulent transaction from fry's on my account,escalate,DeepPavlov/clinc_oos,70
+how do i locate my current credit score,question,DeepPavlov/clinc_oos,69
+"Welcome to Select, an O2 service with added benefits. You can now call our specially trained advisors FREE from your mobile by dialling 402.",spam,SMS Spam Collection,spam
+74355 XMAS iscoming & ur awarded either £500 CD gift vouchers & free entry 2 r £100 weekly draw txt MUSIC to 87066 TnC,spam,SMS Spam Collection,spam
+what is the tax rate that applies to me,question,DeepPavlov/clinc_oos,94
+PRIVATE! Your 2003 Account Statement for 07973788240 shows 800 un-redeemed S. I. M. points. Call 08715203649 Identifier Code: 40533 Expires 31/10/04,spam,SMS Spam Collection,spam
+would it be possible to make a pto request for january 15th and 16th,lead,DeepPavlov/clinc_oos,97
+can i edit my insurance policy,lead,DeepPavlov/clinc_oos,64
+Sunshine Quiz! Win a super Sony DVD recorder if you canname the capital of Australia? Text MQUIZ to 82277. B,spam,SMS Spam Collection,spam
+"tell me my scheduled meetings for today only, please",question,DeepPavlov/clinc_oos,19
+"are you a computer, or are you a real person",escalate,DeepPavlov/clinc_oos,117
+report fraud on my card,escalate,DeepPavlov/clinc_oos,70
+<Forwarded from 21870000>Hi - this is your Mailbox Messaging SMS alert. You have 40 matches. Please call back on 09056242159 to retrieve your messages and matches cc100p/min,spam,SMS Spam Collection,spam
+will you reserve a table at olive garden for 3 people at 7,lead,DeepPavlov/clinc_oos,23
+what is the amount of rewards points on my visa card,question,DeepPavlov/clinc_oos,50
+URGENT! We are trying to contact U. Todays draw shows that you have won a £800 prize GUARANTEED. Call 09050003091 from land line. Claim C52. Valid 12hrs only,spam,SMS Spam Collection,spam
+what year is it,question,DeepPavlov/clinc_oos,95
+"BangBabes Ur order is on the way. U SHOULD receive a Service Msg 2 download UR content. If U do not, GoTo wap. bangb. tv on UR mobile internet/service menu",spam,SMS Spam Collection,spam
+how many more pto days are there for me,question,DeepPavlov/clinc_oos,126
+i think there's a fraudulent transaction on my account,escalate,DeepPavlov/clinc_oos,70
+can you act and think like a real person,escalate,DeepPavlov/clinc_oos,117
+Our records indicate u maybe entitled to 5000 pounds in compensation for the Accident you had. To claim 4 free reply with CLAIM to this msg. 2 stop txt STOP,spam,SMS Spam Collection,spam
+how expensive is my internet,question,DeepPavlov/clinc_oos,27
+how do i report my very lost card,escalate,DeepPavlov/clinc_oos,12
+is there a routing number for wachovia,question,DeepPavlov/clinc_oos,45
+would i be able to put in a pto request for march 21-26,lead,DeepPavlov/clinc_oos,97
+i'm thinking someone may have used my card in a fraudulent way,escalate,DeepPavlov/clinc_oos,70
+do you think they'll let me reserve a table at the olive garden,lead,DeepPavlov/clinc_oos,9
+could you tell me if you're a real person,escalate,DeepPavlov/clinc_oos,117
+due to fraudulent activity on my card i need to make a report,escalate,DeepPavlov/clinc_oos,70
+Camera - You are awarded a SiPix Digital Camera! call 09061221066 fromm landline. Delivery within 28 days,spam,SMS Spam Collection,spam
+can i book a hotel in new york city near times square from 3/1 until 3/5,lead,DeepPavlov/clinc_oos,116
+is there a way to alter my insurance policy,lead,DeepPavlov/clinc_oos,64
+what did i want to remember,question,DeepPavlov/clinc_oos,76
+i want to report fraudulent activity on my mastercard,escalate,DeepPavlov/clinc_oos,70
+when is the next time i need to get an oil change,question,DeepPavlov/clinc_oos,123
+am i your manager,escalate,DeepPavlov/clinc_oos,57
+i didn't make these purchases on my card; these are fraudulent charges i need to report them,escalate,DeepPavlov/clinc_oos,70
+Thanks for the Vote. Now sing along with the stars with Karaoke on your mobile. For a FREE link just reply with SING now.,spam,SMS Spam Collection,spam
+what do you like to do when you're not working,escalate,DeepPavlov/clinc_oos,15

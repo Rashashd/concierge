@@ -1,0 +1,26 @@
+{
+  "endpoint": "POST /predict",
+  "request": {
+    "text": "string"
+  },
+  "response": {
+    "confidence": "float between 0 and 1",
+    "label": "spam | question | lead | escalate",
+    "model_version": "intent-router-v1",
+    "route_hint": "drop | rag_search | capture_lead | escalate | agent_handoff",
+    "scores": {
+      "escalate": "float",
+      "lead": "float",
+      "question": "float",
+      "spam": "float"
+    }
+  },
+  "route_policy": {
+    "confidence_threshold": 0.7,
+    "escalate": "escalate",
+    "lead": "capture_lead",
+    "low_confidence": "agent_handoff",
+    "question": "rag_search",
+    "spam": "drop"
+  }
+}

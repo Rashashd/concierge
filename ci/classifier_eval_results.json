@@ -1,0 +1,47 @@
+{
+  "classical_tfidf_logistic_regression": {
+    "avg_latency_ms": 0.9465313040000183,
+    "estimated_cost_usd": 0.0,
+    "macro_f1": 0.9431985795973392,
+    "name": "classical_tfidf_logistic_regression",
+    "notes": "Training completed in 0.43 seconds. Exported with joblib.",
+    "p95_latency_ms": 1.2592683499860868,
+    "per_class_f1": {
+      "escalate": 0.9333333333333333,
+      "lead": 0.9620253164556962,
+      "question": 0.9135802469135802,
+      "spam": 0.963855421686747
+    },
+    "weighted_f1": 0.9432606251713267
+  },
+  "groq_zero_shot_llama-3.3-70b-versatile": {
+    "avg_latency_ms": 1512.4954345999981,
+    "estimated_cost_usd": null,
+    "macro_f1": 0.7830387205387206,
+    "name": "groq_zero_shot_llama-3.3-70b-versatile",
+    "notes": "Groq hosted-API zero-shot baseline. Evaluated on a subset by default to control cost and latency.",
+    "p95_latency_ms": 1512.4954345999981,
+    "per_class_f1": {
+      "escalate": 0.85,
+      "lead": 0.5185185185185185,
+      "question": 0.7636363636363637,
+      "spam": 1.0
+    },
+    "weighted_f1": 0.7809890572390572
+  },
+  "small_dl_tfidf_mlp": {
+    "avg_latency_ms": 2.9231459500151686,
+    "estimated_cost_usd": 0.0,
+    "macro_f1": 0.9627045534834652,
+    "name": "small_dl_tfidf_mlp",
+    "notes": "Small PyTorch MLP trained offline in Colab and exported to ONNX.",
+    "p95_latency_ms": 6.706127949837536,
+    "per_class_f1": {
+      "escalate": 0.9736842105263158,
+      "lead": 0.9629629629629629,
+      "question": 0.926829268292683,
+      "spam": 0.9873417721518988
+    },
+    "weighted_f1": 0.9626354990366547
+  }
+}

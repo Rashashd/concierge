@@ -77,9 +77,7 @@ def main() -> None:
             "groq_api_key": "",
             "reranker_provider": reranker_provider,
             "cohere_api_key": env.get("COHERE_API_KEY", ""),
-            "cohere_rerank_model": env.get(
-                "COHERE_RERANK_MODEL", "rerank-v4.0-fast"
-            ),
+            "cohere_rerank_model": env.get("COHERE_RERANK_MODEL", "rerank-v4.0-fast"),
             "reranker_timeout_seconds": env.get("RERANKER_TIMEOUT_SECONDS", "10"),
             "reranker_max_retries": env.get("RERANKER_MAX_RETRIES", "2"),
             "rag_retrieval_mode": env.get("RAG_RETRIEVAL_MODE", "hybrid"),
