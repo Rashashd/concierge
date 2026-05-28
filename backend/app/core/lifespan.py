@@ -145,8 +145,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # HTTP client
     http_client = httpx.AsyncClient(timeout=30.0)
     app.state.http_client = http_client
-    app.state.classifier_client = ModelServerClient(http_client=http_client, settings=settings)
-    app.state.guardrails_client = GuardrailsClient(http_client=http_client, settings=settings)
+    app.state.classifier_client = ModelServerClient(
+        http_client=http_client, settings=settings
+    )
+    app.state.guardrails_client = GuardrailsClient(
+        http_client=http_client, settings=settings
+    )
 
     # Redactor (loads spaCy model — CPU-bound, run off the event loop)
     app.state.redactor = await asyncio.to_thread(build_redactor)

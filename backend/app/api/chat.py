@@ -11,8 +11,8 @@ from app.core.dependencies import (
     get_embeddings_client,
     get_guardrails_client,
     get_llm_client,
-    get_redis,
     get_redactor,
+    get_redis,
     get_reranker,
     get_tenant_session,
 )
@@ -72,7 +72,8 @@ async def chat(
         )
         if input_check.decision == "refuse":
             return ChatResponse(
-                answer=input_check.reason or "I'm sorry, I can't help with that request.",
+                answer=input_check.reason
+                or "I'm sorry, I can't help with that request.",
                 conversation_id=request.conversation_id,
             )
     except Exception as exc:

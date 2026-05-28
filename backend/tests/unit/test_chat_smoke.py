@@ -1,4 +1,5 @@
 import json
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -7,6 +8,7 @@ from pydantic import SecretStr
 
 from app.api.chat import chat
 from app.core.config import Settings
+from app.infra.guardrails import GuardrailResponse
 from app.schemas import ChatRequest, TenantContext
 from app.services.classifier_router import (
     REFUSE_MESSAGE,
@@ -14,6 +16,34 @@ from app.services.classifier_router import (
     ClassifierScores,
 )
 from app.services.memory import build_session_key
+
+
+class FakeRequest:
+    def __init__(self, headers: dict[str, str] | None = None) -> None:
+        self.headers = headers or {}
+
+
+class FakeRedactor:
+    def redact(self, text: str) -> str:
+        return text
+
+
+class FakeGuardrails:
+    async def check_input(
+        self,
+        tenant_id: object,
+        message: str,
+        tenant_config: object = None,
+    ) -> GuardrailResponse:
+        return GuardrailResponse(decision="allow")
+
+    async def check_output(
+        self,
+        tenant_id: object,
+        message: str,
+        tenant_config: object = None,
+    ) -> GuardrailResponse:
+        return GuardrailResponse(decision="allow")
 
 
 class FakeLLM:
@@ -64,8 +94,17 @@ def _make_prediction(
     )
 
 
+def _fake_tenant() -> object:
+    return type(
+        "FakeTenant",
+        (),
+        {"allowed_origins": [], "guardrail_config": {}},
+    )()
+
+
 def _base_deps() -> dict:
     return {
+        "http_request": FakeRequest(),
         "request": ChatRequest(
             message="What are your store hours?", conversation_id="conv-1"
         ),
@@ -79,14 +118,25 @@ def _base_deps() -> dict:
         "session": object(),
         "embeddings": object(),
         "reranker": None,
+        "redactor": FakeRedactor(),
         "settings": Settings(
             vault_addr="http://vault:8200", vault_token=SecretStr("x")
         ),
+        "guardrails": FakeGuardrails(),
     }
 
 
+@pytest.fixture
+def _patch_tenant_repo():
+    with patch(
+        "app.api.chat.tenant_repo.get_by_id",
+        AsyncMock(return_value=_fake_tenant()),
+    ):
+        yield
+
+
 @pytest.mark.asyncio
-async def test_smoke_full_agent_pipeline() -> None:
+async def test_smoke_full_agent_pipeline(_patch_tenant_repo: None) -> None:
     """Classifier→agent→LLM→memory: full pipeline integration."""
     deps = _base_deps()
     prediction = _make_prediction("question", "rag_search")
@@ -122,7 +172,9 @@ async def test_smoke_full_agent_pipeline() -> None:
 
 
 @pytest.mark.asyncio
-async def test_smoke_spam_pipeline_no_llm_no_memory() -> None:
+async def test_smoke_spam_pipeline_no_llm_no_memory(
+    _patch_tenant_repo: None,
+) -> None:
     """Spam classifier → refuse, no LLM call, no memory stored."""
     deps = _base_deps()
     prediction = _make_prediction("spam", "drop")

@@ -8,7 +8,12 @@ import redis.asyncio as aioredis
 import structlog
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import (
+    AzureChatOpenAI,
+    AzureOpenAIEmbeddings,
+    ChatOpenAI,
+    OpenAIEmbeddings,
+)
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +22,6 @@ from app.db.models import User as UserORM
 from app.db.user_manager import fastapi_users
 from app.infra.guardrails import GuardrailsClient
 from app.infra.minio import MinioClient
-from app.infra.model_server import ModelServerClient
 from app.schemas import TenantContext, UserContext
 from app.security.redaction import Redactor
 from app.security.widget_token import InvalidWidgetTokenError, verify_widget_token
