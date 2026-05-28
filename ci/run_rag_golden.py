@@ -193,9 +193,7 @@ def _build_app_settings(
         llm_config.get("azure_openai_api_key", "")
     )
     app_settings.azure_openai_endpoint = llm_config.get("azure_openai_endpoint", "")
-    app_settings.azure_openai_deployment = llm_config.get(
-        "azure_openai_deployment", ""
-    )
+    app_settings.azure_openai_deployment = llm_config.get("azure_openai_deployment", "")
     app_settings.azure_openai_embedding_deployment = llm_config.get(
         "azure_openai_embedding_deployment", ""
     )
@@ -223,14 +221,10 @@ def _build_app_settings(
         "rag_retrieval_mode", app_settings.rag_retrieval_mode
     )  # type: ignore[assignment]
     app_settings.hybrid_vector_weight = float(
-        llm_config.get(
-            "hybrid_vector_weight", str(app_settings.hybrid_vector_weight)
-        )
+        llm_config.get("hybrid_vector_weight", str(app_settings.hybrid_vector_weight))
     )
     app_settings.hybrid_keyword_weight = float(
-        llm_config.get(
-            "hybrid_keyword_weight", str(app_settings.hybrid_keyword_weight)
-        )
+        llm_config.get("hybrid_keyword_weight", str(app_settings.hybrid_keyword_weight))
     )
     app_settings.hybrid_vector_candidate_count = int(
         llm_config.get(
@@ -633,9 +627,7 @@ def _build_report(
 ) -> dict[str, Any]:
     total = len(example_results)
     retrieval_hits = sum(result.retrieval_hit for result in example_results)
-    retrieval_hits_at_1 = sum(
-        result.retrieval_hit_at_1 for result in example_results
-    )
+    retrieval_hits_at_1 = sum(result.retrieval_hit_at_1 for result in example_results)
     answer_hits = sum(result.answer_contains_expected for result in example_results)
     leak_count = sum(result.cross_tenant_leak_count for result in example_results)
     answer_doc_chunks = sum(result.chunk_count for result in example_results)
