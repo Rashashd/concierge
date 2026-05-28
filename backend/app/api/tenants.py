@@ -8,9 +8,9 @@ import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import Settings, get_settings
-from app.core.dependencies import get_redis, get_session, require_tenant_manager
+from app.core.dependencies import get_minio, get_redis, get_session, require_tenant_manager
 from app.infra.minio import MinioClient
+from app.repositories import audit_log as audit_repo
 from app.repositories import cost_records as cost_repo
 from app.repositories import tenants as tenant_repo
 from app.schemas import TenantCostResponse, TenantCreate, TenantResponse, UserContext
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/tenants", tags=["tenants"])
 @router.post("/", response_model=TenantResponse, status_code=status.HTTP_201_CREATED)
 async def create_tenant(
     body: TenantCreate,
-    _: Annotated[UserContext, Depends(require_tenant_manager)],
+    user: Annotated[UserContext, Depends(require_tenant_manager)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> TenantResponse:
     async with session.begin():
@@ -33,6 +33,14 @@ async def create_tenant(
                 detail="Slug already in use",
             )
         tenant = await tenant_repo.create(session, name=body.name, slug=body.slug)
+        await audit_repo.create(
+            session,
+            actor_id=user.user_id,
+            actor_role=user.role,
+            tenant_id=tenant.id,
+            action="tenant.created",
+            payload={"name": body.name, "slug": body.slug},
+        )
     return TenantResponse.model_validate(tenant)
 
 
@@ -80,7 +88,7 @@ async def erase_tenant_data(
     user: Annotated[UserContext, Depends(require_tenant_manager)],
     session: Annotated[AsyncSession, Depends(get_session)],
     redis: Annotated[aioredis.Redis, Depends(get_redis)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    minio: Annotated[MinioClient, Depends(get_minio)],
 ) -> ErasureReport:
     async with session.begin():
         tenant = await tenant_repo.get_by_id(session, tenant_id)
@@ -95,5 +103,5 @@ async def erase_tenant_data(
         actor_role=user.role,
         session=session,
         redis=redis,
-        minio=MinioClient(settings),
+        minio=minio,
     )

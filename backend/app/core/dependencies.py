@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.db.models import User as UserORM
 from app.db.user_manager import fastapi_users
+from app.infra.minio import MinioClient
 from app.schemas import TenantContext, UserContext
 from app.security.redaction import Redactor
 from app.security.widget_token import InvalidWidgetTokenError, verify_widget_token
@@ -158,6 +159,10 @@ def get_embeddings_client(request: Request) -> AzureOpenAIEmbeddings | OpenAIEmb
 
 def get_reranker(request: Request) -> Reranker:
     return request.app.state.reranker
+
+
+def get_minio(request: Request) -> MinioClient:
+    return request.app.state.minio  # type: ignore[no-any-return]
 
 
 def get_redactor(request: Request) -> Redactor:

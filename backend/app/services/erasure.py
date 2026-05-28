@@ -81,16 +81,16 @@ async def erase_tenant(
     try:
         redis_sessions_deleted = await delete_tenant_sessions(redis, tenant_id)
         log.info("erasure.redis_complete", sessions=redis_sessions_deleted)
-    except Exception:
-        log.exception("erasure.redis_failed")
+    except Exception as exc:
+        log.exception("erasure.redis_failed", error_type=type(exc).__name__)
 
     # Step 3: MinIO — best-effort
     minio_objects_deleted = 0
     try:
         minio_objects_deleted = await minio.delete_tenant_prefix(tenant_id)
         log.info("erasure.minio_complete", objects=minio_objects_deleted)
-    except Exception:
-        log.exception("erasure.minio_failed")
+    except Exception as exc:
+        log.exception("erasure.minio_failed", error_type=type(exc).__name__)
 
     log.info("erasure.complete")
     return ErasureReport(

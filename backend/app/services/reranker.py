@@ -96,8 +96,8 @@ class LLMReranker(Reranker):
                 else str(result)
             )
             decisions = _parse_llm_json(content, candidates)
-        except Exception:
-            logger.warning("llm_reranker_failed")
+        except Exception as exc:
+            logger.warning("llm_reranker_failed", error_type=type(exc).__name__)
             return _fallback_decisions(candidates)
 
         return _validate_decisions(decisions, candidates)
