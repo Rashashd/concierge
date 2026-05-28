@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import structlog
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -12,7 +13,11 @@ from app.services.agent.state import AgentState
 from app.services.memory import MemoryMessage
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.services.rag import RAGService
+
+logger = structlog.get_logger(__name__)
 
 MAX_AGENT_STEPS = 4
 
@@ -50,6 +55,7 @@ async def run_agent_turn(
     conversation_id: str | None,
     memory_messages: Sequence[MemoryMessage] | None = None,
     rag_service: RAGService | None = None,
+    session: AsyncSession | None = None,
 ) -> str:
     state: AgentState = {
         "messages": [
@@ -77,6 +83,15 @@ async def run_agent_turn(
         if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
             break
         state["messages"] = (await tool_node(state))["messages"]
+
+    if session is not None:
+        from app.services.cost import extract_turn_cost, record_turn_cost
+        model_name = getattr(llm, "model_name", getattr(llm, "model", "unknown"))
+        cost = extract_turn_cost(tenant_context.tenant_id, model_name, state["messages"])
+        try:
+            await record_turn_cost(session, cost)
+        except Exception as exc:
+            logger.warning("cost.record_failed", error_type=type(exc).__name__)
 
     return _final_text(state["messages"])
 

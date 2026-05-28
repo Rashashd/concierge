@@ -117,8 +117,8 @@ async def resolve_chat_answer(
     if classifier is not None:
         try:
             prediction = await classifier.predict(message)
-        except Exception:
-            logger.warning("classifier_unavailable")
+        except Exception as exc:
+            logger.warning("classifier_unavailable", error_type=type(exc).__name__)
 
     route = route_conversation(prediction)
 

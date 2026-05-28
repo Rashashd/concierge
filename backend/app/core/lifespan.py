@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
 from app.infra.llm import get_embeddings, get_llm
+from app.infra.minio import MinioClient
 from app.infra.vault import create_vault_client
 from app.security.redaction import build_redactor
 from app.services.reranker import build_reranker
@@ -98,6 +99,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings.minio_endpoint = minio_config["endpoint"]
     settings.minio_access_key = minio_config["access_key"]
     settings.minio_secret_key = SecretStr(minio_config["secret_key"])
+
+    app.state.minio = MinioClient(settings)
 
     settings.backend_secret_key = SecretStr(vault.get_backend_secret_key())
     settings.widget_token_secret = SecretStr(vault.get_widget_secret())

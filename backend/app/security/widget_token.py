@@ -1,3 +1,4 @@
+import time
 from uuid import UUID
 
 import jwt
@@ -38,5 +39,6 @@ def issue_widget_token(
         "tenant_id": str(tenant_context.tenant_id),
         "widget_id": str(tenant_context.widget_id),
         "session_id": tenant_context.session_id,
+        "exp": int(time.time()) + expires_in_seconds,
     }
     return jwt.encode(payload, secret, algorithm="HS256")

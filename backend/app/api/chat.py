@@ -1,7 +1,7 @@
 from typing import Annotated, Any
 
 import structlog
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -11,10 +11,14 @@ from app.core.dependencies import (
     get_embeddings_client,
     get_llm_client,
     get_redis,
+    get_redactor,
     get_reranker,
     get_tenant_session,
 )
+from app.repositories import tenants as tenant_repo
 from app.schemas import ChatRequest, ChatResponse, TenantContext
+from app.security.origin import is_origin_allowed
+from app.security.redaction import Redactor
 from app.services.agent.graph import run_agent_turn
 from app.services.classifier_router import (
     ClassifierClient,
@@ -31,6 +35,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 @router.post("", response_model=ChatResponse)
 async def chat(
+    http_request: Request,
     request: ChatRequest,
     tenant_context: Annotated[TenantContext, Depends(get_current_tenant)],
     llm: Annotated[Any, Depends(get_llm_client)],
@@ -38,11 +43,23 @@ async def chat(
     session: Annotated[AsyncSession, Depends(get_tenant_session)],
     embeddings: Annotated[Any, Depends(get_embeddings_client)],
     reranker: Annotated[Reranker, Depends(get_reranker)],
+    redactor: Annotated[Redactor, Depends(get_redactor)],
     settings: Annotated[Settings, Depends(get_settings)],
     classifier: Annotated[
         ClassifierClient | None, Depends(get_classifier_client)
     ],
 ) -> ChatResponse:
+    tenant = await tenant_repo.get_by_id(session, tenant_context.tenant_id)
+    origin = http_request.headers.get("origin")
+    allowed_origins = tenant.allowed_origins if tenant else []
+    if not is_origin_allowed(origin, allowed_origins):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Origin not allowed",
+        )
+
+    safe_message = redactor.redact(request.message)
+
     history = await load_history(
         redis=redis,
         tenant_id=tenant_context.tenant_id,
@@ -63,15 +80,16 @@ async def chat(
         return await run_agent_turn(
             llm=llm,
             tenant_context=tenant_context,
-            message=request.message,
+            message=safe_message,
             conversation_id=request.conversation_id,
             memory_messages=history,
             rag_service=rag_service,
+            session=session,
         )
 
     answer, route = await resolve_chat_answer(
         classifier=classifier,
-        message=request.message,
+        message=safe_message,
         run_agent=_run_rag_agent,
     )
 
@@ -80,7 +98,7 @@ async def chat(
             redis=redis,
             tenant_id=tenant_context.tenant_id,
             session_id=tenant_context.session_id,
-            user_message=request.message,
+            user_message=safe_message,
             assistant_message=answer,
         )
     return ChatResponse(answer=answer, conversation_id=request.conversation_id)
