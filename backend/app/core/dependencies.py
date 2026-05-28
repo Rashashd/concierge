@@ -3,10 +3,12 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
+import httpx
 import redis.asyncio as aioredis
 import structlog
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI, OpenAIEmbeddings
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -138,20 +140,20 @@ def require_tenant_admin(
 # Singletons
 
 
-def get_http_client(request: Request) -> object:
-    return request.app.state.http_client
+def get_http_client(request: Request) -> httpx.AsyncClient:
+    return request.app.state.http_client  # type: ignore[no-any-return]
 
 
 def get_redis(request: Request) -> aioredis.Redis:
     return request.app.state.redis
 
 
-def get_llm_client(request: Request) -> object:
-    return request.app.state.llm
+def get_llm_client(request: Request) -> ChatOpenAI | AzureChatOpenAI:
+    return request.app.state.llm  # type: ignore[no-any-return]
 
 
-def get_embeddings_client(request: Request) -> object:
-    return request.app.state.embeddings
+def get_embeddings_client(request: Request) -> AzureOpenAIEmbeddings | OpenAIEmbeddings:
+    return request.app.state.embeddings  # type: ignore[no-any-return]
 
 
 def get_reranker(request: Request) -> Reranker:

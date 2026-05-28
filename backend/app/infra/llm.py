@@ -20,9 +20,9 @@ def get_llm(settings: Settings) -> ChatOpenAI | AzureChatOpenAI:
             max_retries=settings.azure_openai_max_retries,
         )
     if settings.llm_provider == "groq":
-        from langchain_groq import ChatGroq  # type: ignore[import-not-found]
+        from langchain_groq import ChatGroq
 
-        return ChatGroq(  # type: ignore[no-any-return]
+        return ChatGroq(  # type: ignore[return-value]
             api_key=settings.groq_api_key.get_secret_value(),
             model="llama3-8b-8192",
         )
