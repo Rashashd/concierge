@@ -27,11 +27,11 @@ phrase pass rate (+36 %).
 ### Hybrid Search
 
 The second enhancement combined pgvector dense retrieval with Postgres
-full-text search (FTS). The hybrid retriever uses reciprocal-rank fusion with
-configurable weights (default 0.7 vector, 0.3 keyword) and independent
-candidate counts per source. This avoids dense-score dominance and improves
-context_precision (+7 % over reranker-only) by surfacing keyword matches that
-pure vector search misses.
+full-text search (FTS). The hybrid retriever merges vector and keyword
+candidates, normalizes both scores, and combines them with configurable weights
+(default 0.7 vector, 0.3 keyword) and independent candidate counts per source.
+This improves context_precision (+7 % over reranker-only) by surfacing keyword
+matches that pure vector search misses.
 
 ### Metadata Filtering — Intentionally Skipped
 
