@@ -1,3 +1,5 @@
+import json
+import re
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -75,6 +77,7 @@ class FakeRedis:
     def __init__(self) -> None:
         self.lists: dict[str, list[str | bytes]] = {}
         self.ttls: dict[str, int] = {}
+        self.lrange_calls: list[tuple] = []
 
     async def rpush(self, name: str, *values: str) -> int:
         self.lists.setdefault(name, []).extend(values)
@@ -85,6 +88,7 @@ class FakeRedis:
         return True
 
     async def lrange(self, name: str, start: int, end: int) -> list[str | bytes]:
+        self.lrange_calls.append((name, start, end))
         values = self.lists.get(name, [])
         if start < 0:
             start = max(len(values) + start, 0)
@@ -441,3 +445,239 @@ async def test_guardrails_output_safe_text_replaces_answer(
     response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
 
     assert response.answer == "Sanitized: Tenant-safe response."
+
+
+# ── Origin enforcement ───────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_allowed_origin_succeeds() -> None:
+    tenant = type(
+        "FakeTenant",
+        (),
+        {"allowed_origins": ["https://tenant.example.com"], "guardrail_config": {}},
+    )()
+    deps = _base_deps()
+    deps["http_request"] = FakeRequest({"origin": "https://tenant.example.com"})
+
+    with patch(
+        "app.api.chat.tenant_repo.get_by_id",
+        AsyncMock(return_value=tenant),
+    ):
+        response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert response.answer == "Tenant-safe response."
+    assert response.conversation_id == "conversation-1"
+
+
+@pytest.mark.asyncio
+async def test_missing_origin_rejected_when_allowlist_non_empty() -> None:
+    from fastapi import HTTPException
+
+    tenant = type(
+        "FakeTenant",
+        (),
+        {"allowed_origins": ["https://tenant.example.com"], "guardrail_config": {}},
+    )()
+    deps = _base_deps()
+    deps["http_request"] = FakeRequest({})
+
+    with patch(
+        "app.api.chat.tenant_repo.get_by_id",
+        AsyncMock(return_value=tenant),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_origin_with_path_rejected() -> None:
+    """normalize_origin() rejects non-origin URLs such as those with a path."""
+    from fastapi import HTTPException
+
+    tenant = type(
+        "FakeTenant",
+        (),
+        {"allowed_origins": ["https://tenant.example.com"], "guardrail_config": {}},
+    )()
+    deps = _base_deps()
+    deps["http_request"] = FakeRequest(
+        {"origin": "https://tenant.example.com/some/path"}
+    )
+
+    with patch(
+        "app.api.chat.tenant_repo.get_by_id",
+        AsyncMock(return_value=tenant),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_empty_allowlist_temporary_allow_all() -> None:
+    """Empty allowed_origins is a temporary allow-all until per-tenant
+    origin configuration is stored and enforced."""
+    tenant = type(
+        "FakeTenant",
+        (),
+        {"allowed_origins": [], "guardrail_config": {}},
+    )()
+    deps = _base_deps()
+    deps["http_request"] = FakeRequest({})
+
+    with patch(
+        "app.api.chat.tenant_repo.get_by_id",
+        AsyncMock(return_value=tenant),
+    ):
+        response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert response.answer == "Tenant-safe response."
+
+
+# ── Redaction ────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_redacted_message_used_downstream(
+    _patch_tenant_repo: None,
+) -> None:
+    raw = "Contact me at hadi@example.com"
+    redacted = "Contact me at [REDACTED_EMAIL]"
+
+    class EmailRedactor:
+        def redact(self, text: str) -> str:
+            return re.sub(r"[\w\.-]+@[\w\.-]+", "[REDACTED_EMAIL]", text)
+
+    class SpyClassifier:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        async def predict(self, message: str) -> ClassifierPrediction:
+            self.calls.append(message)
+            return _make_prediction("question", "rag_search")
+
+    deps = _base_deps()
+    deps["request"] = ChatRequest(message=raw, conversation_id="conv-1")
+    deps["redactor"] = EmailRedactor()
+    guardrails = FakeGuardrails()
+    deps["guardrails"] = guardrails
+    classifier = SpyClassifier()
+
+    response = await chat(classifier=classifier, **deps)  # type: ignore[arg-type]
+
+    assert response.answer == "Tenant-safe response."
+    assert guardrails.input_checks[0][1] == redacted
+    assert classifier.calls[0] == redacted
+    messages = deps["llm"].received_messages
+    assert str(messages[-1].content) == redacted
+    key = build_session_key(
+        deps["tenant_context"].tenant_id, deps["tenant_context"].session_id
+    )
+    saved = [json.loads(m) for m in deps["redis"].lists[key]]
+    assert saved[0]["content"] == redacted
+    for entry in deps["redis"].lists[key]:
+        assert "hadi@example.com" not in entry
+
+
+# ── Guardrails input refusal ─────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_guardrails_input_refusal_blocks_entire_pipeline(
+    _patch_tenant_repo: None,
+) -> None:
+    class SpyClassifier:
+        def __init__(self) -> None:
+            self.called = False
+
+        async def predict(self, message: str) -> ClassifierPrediction:
+            self.called = True
+            return _make_prediction("question", "rag_search")
+
+    class RefusingInputGuardrails:
+        def __init__(self) -> None:
+            self.input_checks: list[tuple] = []
+            self.output_checks: list[tuple] = []
+
+        async def check_input(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            self.input_checks.append((tenant_id, message))
+            return GuardrailResponse(decision="refuse", reason="Blocked")
+
+        async def check_output(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            self.output_checks.append((tenant_id, message))
+            return GuardrailResponse(decision="allow")
+
+    deps = _base_deps()
+    deps["guardrails"] = RefusingInputGuardrails()
+    classifier = SpyClassifier()
+
+    response = await chat(classifier=classifier, **deps)  # type: ignore[arg-type]
+
+    assert response.answer == "Blocked"
+    assert not deps["llm"].received_messages
+    assert not classifier.called
+    assert deps["guardrails"].output_checks == []
+    key = build_session_key(
+        deps["tenant_context"].tenant_id, deps["tenant_context"].session_id
+    )
+    assert key not in deps["redis"].lists
+    assert deps["redis"].lrange_calls == []
+
+
+# ── Guardrails output refusal ────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_guardrails_output_refusal_replaces_answer_and_memory(
+    _patch_tenant_repo: None,
+) -> None:
+    class RefusingOutputGuardrails:
+        def __init__(self) -> None:
+            self.input_checks: list[tuple] = []
+            self.output_checks: list[tuple] = []
+
+        async def check_input(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            self.input_checks.append((tenant_id, message))
+            return GuardrailResponse(decision="allow")
+
+        async def check_output(
+            self,
+            tenant_id: object,
+            message: str,
+            tenant_config: object = None,
+        ) -> GuardrailResponse:
+            self.output_checks.append((tenant_id, message))
+            return GuardrailResponse(decision="refuse")
+
+    deps = _base_deps()
+    deps["guardrails"] = RefusingOutputGuardrails()
+
+    response = await chat(classifier=None, **deps)  # type: ignore[arg-type]
+
+    assert response.answer == "I'm sorry, I'm unable to provide that response."
+    assert deps["llm"].received_messages
+    key = build_session_key(
+        deps["tenant_context"].tenant_id, deps["tenant_context"].session_id
+    )
+    saved = [json.loads(m) for m in deps["redis"].lists[key]]
+    assert saved[1]["content"] == "I'm sorry, I'm unable to provide that response."
+    assert "Tenant-safe response." not in saved[1]["content"]
