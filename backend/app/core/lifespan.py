@@ -14,8 +14,10 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
+from app.infra.guardrails import GuardrailsClient
 from app.infra.llm import get_embeddings, get_llm
 from app.infra.minio import MinioClient
+from app.infra.model_server import ModelServerClient
 from app.infra.vault import create_vault_client
 from app.security.redaction import build_redactor
 from app.services.reranker import build_reranker
@@ -143,6 +145,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # HTTP client
     http_client = httpx.AsyncClient(timeout=30.0)
     app.state.http_client = http_client
+    app.state.classifier_client = ModelServerClient(http_client=http_client, settings=settings)
+    app.state.guardrails_client = GuardrailsClient(http_client=http_client, settings=settings)
 
     # Redactor (loads spaCy model — CPU-bound, run off the event loop)
     app.state.redactor = await asyncio.to_thread(build_redactor)

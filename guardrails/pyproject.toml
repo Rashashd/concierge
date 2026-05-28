@@ -10,7 +10,8 @@ dependencies = [
     "pydantic-settings>=2.4.0",
     "structlog>=24.4.0",
     "nemoguardrails>=0.16.0",
-    "langchain-openai>=0.2.0"
+    "langchain-openai>=0.2.0",
+    "hvac>=2.3.0"
 ]
 
 [dependency-groups]

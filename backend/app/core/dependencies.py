@@ -15,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.db.models import User as UserORM
 from app.db.user_manager import fastapi_users
+from app.infra.guardrails import GuardrailsClient
 from app.infra.minio import MinioClient
+from app.infra.model_server import ModelServerClient
 from app.schemas import TenantContext, UserContext
 from app.security.redaction import Redactor
 from app.security.widget_token import InvalidWidgetTokenError, verify_widget_token
@@ -170,11 +172,8 @@ def get_redactor(request: Request) -> Redactor:
 
 
 def get_classifier_client(request: Request) -> ClassifierClient | None:
-    """Optional classifier client from model-server.
+    return request.app.state.classifier_client  # type: ignore[no-any-return]
 
-    TODO: Hussein will implement the real model-server HTTP client in
-    backend/app/infra/model_server.py. Once ready, load it from
-    request.app.state.classifier_client here. For now returns None so
-    the chat route gracefully falls through to the agent flow.
-    """
-    return None
+
+def get_guardrails_client(request: Request) -> GuardrailsClient:
+    return request.app.state.guardrails_client  # type: ignore[no-any-return]
