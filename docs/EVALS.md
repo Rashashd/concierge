@@ -7,7 +7,7 @@ rewriting, or parent-child retrieval. The baseline uses the current tenant-safe
 pgvector RAG path with hosted embeddings and live Postgres/pgvector.
 
 This baseline uses a temporary CI ingestion path: committed synthetic Markdown
-fixtures are chunked inside `ci/run_rag_golden.py`, embedded, inserted into
+fixtures are chunked inside `ci/rag/run_rag_golden.py`, embedded, inserted into
 pgvector, and then evaluated through the real retrieval path. It is not the
 production ingestion pipeline.
 
@@ -31,7 +31,7 @@ directory:
 RAG_EVAL_DATABASE_URL=postgresql+asyncpg://concierge:CHANGE_ME@127.0.0.1:5432/concierge \
 VAULT_ADDR=http://127.0.0.1:8200 \
 VAULT_TOKEN=root-token-changeme \
-uv run python ../ci/run_rag_golden.py
+uv run python ../ci/rag/run_rag_golden.py
 ```
 
 RAGAS is required for this eval. Missing Vault, database, LLM, embedding, or
@@ -39,16 +39,16 @@ RAGAS judge configuration should fail the run.
 
 ### Dataset
 
-`ci/rag_golden.json` contains 20 synthetic examples across three tenants:
+`ci/rag/rag_golden.json` contains 20 synthetic examples across three tenants:
 15 single-hop questions (5 per tenant) and 5 multi-hop questions that require
 retrieving facts from 2 different answer docs for the same tenant.
 
-Each example points to one or more Markdown fixtures in `ci/rag_eval_docs/`, a
+Each example points to one or more Markdown fixtures in `ci/rag/rag_eval_docs/`, a
 question, a list of expected fixture paths (`expected_fixture_paths`), a
 reference answer, and expected answer phrases. Single-hop examples use a list
 of one fixture path; multi-hop examples use a list of two fixture paths.
 
-`ci/rag_eval_distractors.json` adds 15 same-tenant distractor documents (5 per
+`ci/rag/rag_eval_distractors.json` adds 15 same-tenant distractor documents (5 per
 tenant) that are ingested but are not correct sources for any golden question.
 Distractors include archived policies, draft documents, internal handbooks,
 holiday schedules, and legacy platform documentation.
@@ -123,7 +123,7 @@ and `context_precision` over this baseline.
 
 Deterministic routing eval that verifies `/chat` classifier integration without calling hosted LLMs, Redis, or the model-server.
 
-**Command:** `cd backend && uv run python ../ci/run_agent_golden.py`
+**Command:** `cd backend && uv run python ../ci/agent/run_agent_golden.py`
 
 **What it covers:**
 - spam → refuse (static response, agent not called)
@@ -136,4 +136,3 @@ Deterministic routing eval that verifies `/chat` classifier integration without 
 - tenant_id override in message → ignored, still uses verified context
 
 **Latest result (2026-05-28):** 8/8 passed, 0 failures.
-

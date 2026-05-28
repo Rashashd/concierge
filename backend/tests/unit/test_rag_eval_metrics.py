@@ -3,7 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.append(str(REPO_ROOT / "ci"))
+sys.path.append(str(REPO_ROOT / "ci" / "rag"))
 
 from rag_eval_metrics import (  # noqa: E402
     RetrievedSource,
