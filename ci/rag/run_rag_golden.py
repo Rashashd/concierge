@@ -51,7 +51,7 @@ DISTRACTOR_PATH = Path(__file__).with_name("rag_eval_distractors.json")
 FIXTURE_ROOT = Path(__file__).with_name("rag_eval_docs")
 TEMP_CONTENT_TYPE = "rag_eval_temp_ci"
 DEFAULT_CHUNK_MAX_CHARS = 300
-DEFAULT_RAGAS_TIMEOUT_SECONDS = 180
+DEFAULT_RAGAS_TIMEOUT_SECONDS = 600
 
 
 class EvalSettings(BaseSettings):
@@ -565,16 +565,22 @@ async def _run_required_ragas(
     embeddings: Any,
     timeout_seconds: int,
 ) -> dict[str, float]:
+    # Run RAGAS in a thread so the event loop stays responsive, but shield the
+    # thread future from cancellation. asyncio.wait_for without shield would
+    # cancel the underlying concurrent.futures.Future on timeout, propagating
+    # CancelledError into RAGAS's in-flight LLM tasks and leaving queued tasks
+    # without an LLM reference. asyncio.shield lets us raise TimeoutError at
+    # the caller while RAGAS's tasks drain cleanly.
+    loop = asyncio.get_running_loop()
+    fut = loop.run_in_executor(
+        None,
+        _evaluate_ragas_sync,
+        example_results,
+        llm,
+        embeddings,
+    )
     try:
-        return await asyncio.wait_for(
-            asyncio.to_thread(
-                _evaluate_ragas_sync,
-                example_results,
-                llm,
-                embeddings,
-            ),
-            timeout=timeout_seconds,
-        )
+        return await asyncio.wait_for(asyncio.shield(fut), timeout=float(timeout_seconds))
     except TimeoutError as exc:
         raise RuntimeError(
             f"RAGAS did not finish within {timeout_seconds} seconds."
