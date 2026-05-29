@@ -11,6 +11,7 @@ from app.api.chat import chat
 from app.core.config import Settings
 from app.infra.guardrails import GuardrailResponse
 from app.schemas import ChatRequest, TenantContext
+from app.services.agent.graph import SYSTEM_PROMPT
 from app.services.classifier_router import (
     ESCALATE_MESSAGE,
     LEAD_MESSAGE,
@@ -195,13 +196,12 @@ async def test_chat_loads_tenant_scoped_history_before_agent_turn(
     await chat(classifier=None, **deps)  # type: ignore[arg-type]
 
     contents = [str(message.content) for message in deps["llm"].received_messages]
-    assert "Concierge" in contents[0]
-    assert "rag_search" in contents[0]
-    assert "tenant context" in contents[0].lower()
-    assert "verified" in contents[0].lower()
-    assert contents[1] == "Earlier question"
-    assert contents[2] == "Earlier answer"
-    assert contents[3] == "Hello"
+    assert contents == [
+        SYSTEM_PROMPT,
+        "Earlier question",
+        "Earlier answer",
+        "Hello",
+    ]
 
 
 def test_chat_body_cannot_override_tenant_context() -> None:
