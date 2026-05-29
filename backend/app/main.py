@@ -16,6 +16,7 @@ def create_app() -> FastAPI:
     from app.api.auth import router as auth_router
     from app.api.chat import router as chat_router
     from app.api.content import router as content_router
+    from app.api.escalations import router as escalations_router
     from app.api.leads import router as leads_router
     from app.api.tenants import router as tenants_router
     from app.api.widget import router as widget_router
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
     app.include_router(content_router)
     app.include_router(chat_router)
     app.include_router(leads_router)
+    app.include_router(escalations_router)
     app.include_router(widget_router)
 
     @app.get("/healthz", include_in_schema=False)

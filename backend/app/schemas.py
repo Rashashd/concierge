@@ -178,6 +178,17 @@ class LeadStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+# Escalations
+
+
+class EscalationResponse(BaseModel):
+    id: UUID
+    tenant_id: UUID
+    conversation_id: str
+    reason: str
+    created_at: str
+
+
 # Content admin
 
 ContentType = Literal["faq", "page", "blog"]
