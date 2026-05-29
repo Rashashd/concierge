@@ -10,7 +10,10 @@ from app.schemas import TenantContext, WidgetTokenRequest
 from app.security.widget_token import issue_widget_token, verify_widget_token
 
 TEST_SECRET = "0123456789abcdef0123456789abcdef"
-VAULT_DEFAULTS = {"vault_addr": "http://localhost:8200", "vault_token": SecretStr("root")}
+VAULT_DEFAULTS = {
+    "vault_addr": "http://localhost:8200",
+    "vault_token": SecretStr("root"),
+}
 
 
 def test_issue_widget_token_round_trips_to_tenant_context() -> None:
