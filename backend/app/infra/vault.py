@@ -43,18 +43,18 @@ class VaultClient:
 
     def get_redis_url(self) -> str:
         data = self._read(_PATH_REDIS)
-        return data["url"]
+        return str(data["url"])
 
     def get_llm_config(self) -> dict[str, str]:
         return self._read(_PATH_LLM)
 
     def get_widget_secret(self) -> str:
         data = self._read(_PATH_WIDGET)
-        return data["token_secret"]
+        return str(data["token_secret"])
 
     def get_backend_secret_key(self) -> str:
         data = self._read(_PATH_BACKEND)
-        return data["secret_key"]
+        return str(data["secret_key"])
 
     def get_langchain_config(self) -> dict[str, str]:
         return self._read(_PATH_LANGCHAIN)
@@ -62,7 +62,7 @@ class VaultClient:
     def get_service_token(self, service: str) -> str:
         """Shared token for internal service-to-service auth."""
         data = self._read(_PATH_SERVICES)
-        return data[service]
+        return str(data[service])
 
     def is_authenticated(self) -> bool:
         return bool(self._client.is_authenticated())

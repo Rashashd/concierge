@@ -4,6 +4,7 @@ seed.sh
 seed.example.sh
 
 # AI assistant config (personal/team-specific)
+.claude/
 CLAUDE.md
 AGENTS.md
 instructions/

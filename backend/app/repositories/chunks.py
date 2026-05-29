@@ -1,6 +1,7 @@
 """Chunk repository — bulk insert, pgvector search, keyword & hybrid search."""
 
 import uuid
+from typing import Any
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +16,7 @@ async def create_bulk(
     content_item_id: uuid.UUID,
     texts: list[str],
     embeddings: list[list[float]],
-    metadatas: list[dict] | None = None,
+    metadatas: list[dict[str, Any]] | None = None,
 ) -> list[Chunk]:
     """Insert all chunks for a content item in one flush.
 
@@ -92,13 +93,13 @@ async def delete_by_content_item(
             Chunk.tenant_id == tenant_id,
         )
     )
-    return result.rowcount
+    return result.rowcount  # type: ignore[attr-defined, no-any-return]
 
 
 async def delete_by_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> int:
     """Delete all chunks for a tenant. Called by the erasure service."""
     result = await session.execute(delete(Chunk).where(Chunk.tenant_id == tenant_id))
-    return result.rowcount
+    return result.rowcount  # type: ignore[attr-defined, no-any-return]
 
 
 async def keyword_search(

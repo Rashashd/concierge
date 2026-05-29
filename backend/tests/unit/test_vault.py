@@ -8,9 +8,7 @@ from app.infra.vault import VaultClient, create_vault_client
 def _client_with(data: dict) -> VaultClient:
     client = VaultClient.__new__(VaultClient)
     mock_hvac = MagicMock()
-    mock_hvac.secrets.kv.v2.read_secret_version.return_value = {
-        "data": {"data": data}
-    }
+    mock_hvac.secrets.kv.v2.read_secret_version.return_value = {"data": {"data": data}}
     client._client = mock_hvac
     return client
 
@@ -20,7 +18,13 @@ def _client_with(data: dict) -> VaultClient:
 
 def test_get_database_url_builds_asyncpg_connection_string() -> None:
     client = _client_with(
-        {"user": "concierge", "password": "secret", "host": "postgres", "port": "5432", "name": "concierge"}
+        {
+            "user": "concierge",
+            "password": "secret",
+            "host": "postgres",
+            "port": "5432",
+            "name": "concierge",
+        }
     )
     assert client.get_database_url() == (
         "postgresql+asyncpg://concierge:secret@postgres:5432/concierge"

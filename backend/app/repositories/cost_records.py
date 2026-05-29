@@ -1,7 +1,7 @@
 """Cost records repository — insert and aggregate token usage per tenant."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,8 +36,8 @@ async def get_daily_totals(
     day: date,
 ) -> dict[str, int]:
     """Return summed token counts for a tenant on a given calendar day (UTC)."""
-    day_start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
-    day_end = datetime(day.year, day.month, day.day + 1, tzinfo=timezone.utc)
+    day_start = datetime(day.year, day.month, day.day, tzinfo=UTC)
+    day_end = datetime(day.year, day.month, day.day + 1, tzinfo=UTC)
     result = await session.execute(
         select(
             func.coalesce(func.sum(CostRecord.prompt_tokens), 0).label("prompt_tokens"),

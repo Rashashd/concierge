@@ -131,9 +131,7 @@ def test_expected_fixture_paths_are_valid_for_all_examples() -> None:
         assert len(example.expected_fixture_paths) >= 1
         for fp in example.expected_fixture_paths:
             full_path = Path(_fixture_path(example).parent) / fp
-            assert full_path.exists(), (
-                f"Expected fixture {fp} missing for {example.id}"
-            )
+            assert full_path.exists(), f"Expected fixture {fp} missing for {example.id}"
 
 
 def test_distractor_count_per_tenant() -> None:
@@ -154,10 +152,7 @@ def test_golden_example_count() -> None:
 
 def test_distractor_manifest_valid() -> None:
     distractor_path = (
-        Path(__file__).resolve().parents[3]
-        / "ci"
-        / "rag"
-        / "rag_eval_distractors.json"
+        Path(__file__).resolve().parents[3] / "ci" / "rag" / "rag_eval_distractors.json"
     )
     with distractor_path.open("r", encoding="utf-8") as f:
         raw = json.load(f)

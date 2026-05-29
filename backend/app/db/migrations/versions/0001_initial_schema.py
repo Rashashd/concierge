@@ -24,14 +24,36 @@ def upgrade() -> None:
     # tenants
     op.create_table(
         "tenants",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("slug", sa.String(100), unique=True, nullable=False),
-        sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.text("true")),
+        sa.Column(
+            "is_active", sa.Boolean, nullable=False, server_default=sa.text("true")
+        ),
         sa.Column("llm_persona", sa.Text, nullable=False, server_default=sa.text("''")),
-        sa.Column("guardrail_config", postgresql.JSONB, nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("allowed_origins", postgresql.ARRAY(sa.Text), nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "guardrail_config",
+            postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'{}'"),
+        ),
+        sa.Column(
+            "allowed_origins",
+            postgresql.ARRAY(sa.Text),
+            nullable=False,
+            server_default=sa.text("'{}'"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("suspended_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.create_index("ix_tenants_slug", "tenants", ["slug"])
@@ -39,13 +61,30 @@ def upgrade() -> None:
     # users
     op.create_table(
         "users",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("email", sa.String(320), unique=True, nullable=False),
         sa.Column("hashed_password", sa.Text, nullable=False),
         sa.Column("role", sa.String(50), nullable=False),
-        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tenants.id"), nullable=True),
-        sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.text("true")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id"),
+            nullable=True,
+        ),
+        sa.Column(
+            "is_active", sa.Boolean, nullable=False, server_default=sa.text("true")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_users_email", "users", ["email"])
     op.create_index("ix_users_tenant_id", "users", ["tenant_id"])
@@ -53,13 +92,33 @@ def upgrade() -> None:
     # content_items
     op.create_table(
         "content_items",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tenants.id"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id"),
+            nullable=False,
+        ),
         sa.Column("title", sa.Text, nullable=False),
         sa.Column("body", sa.Text, nullable=False),
         sa.Column("content_type", sa.String(50), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_content_items_tenant_id", "content_items", ["tenant_id"])
     op.execute("""
@@ -72,16 +131,42 @@ def upgrade() -> None:
     # chunks
     op.create_table(
         "chunks",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tenants.id"), nullable=False),
-        sa.Column("content_item_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("content_items.id"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "content_item_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("content_items.id"),
+            nullable=False,
+        ),
         sa.Column("chunk_index", sa.Integer, nullable=False),
         sa.Column("text", sa.Text, nullable=False),
-        sa.Column("embedding", sa.Text, nullable=False),  # cast to vector(1536) below after extension loads
-        sa.Column("metadata", postgresql.JSONB, nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "embedding", sa.Text, nullable=False
+        ),  # cast to vector(1536) below after extension loads
+        sa.Column(
+            "metadata", postgresql.JSONB, nullable=False, server_default=sa.text("'{}'")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
-    op.execute("ALTER TABLE chunks ALTER COLUMN embedding TYPE vector(1536) USING embedding::vector(1536)")
+    op.execute(
+        "ALTER TABLE chunks ALTER COLUMN embedding TYPE vector(1536) USING embedding::vector(1536)"
+    )
     op.create_index("ix_chunks_tenant_id", "chunks", ["tenant_id"])
     op.create_index("ix_chunks_content_item_id", "chunks", ["content_item_id"])
     # HNSW index for ANN search
@@ -99,14 +184,31 @@ def upgrade() -> None:
     # leads
     op.create_table(
         "leads",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tenants.id"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id"),
+            nullable=False,
+        ),
         sa.Column("session_id", sa.String(255), nullable=False),
         sa.Column("visitor_name", sa.String(255), nullable=True),
         sa.Column("contact", sa.String(320), nullable=False),
         sa.Column("intent", sa.Text, nullable=False),
-        sa.Column("status", sa.String(50), nullable=False, server_default=sa.text("'new'")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "status", sa.String(50), nullable=False, server_default=sa.text("'new'")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_leads_tenant_id", "leads", ["tenant_id"])
     op.create_index("ix_leads_session_id", "leads", ["session_id"])
@@ -120,14 +222,52 @@ def upgrade() -> None:
     # widget_configs
     op.create_table(
         "widget_configs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tenants.id"), nullable=False),
-        sa.Column("widget_id", postgresql.UUID(as_uuid=True), unique=True, nullable=False, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("greeting", sa.Text, nullable=False, server_default=sa.text("'Hi, how can I help you?'")),
-        sa.Column("theme_color", sa.String(7), nullable=False, server_default=sa.text("'#0066CC'")),
-        sa.Column("enabled_tools", postgresql.ARRAY(sa.Text), nullable=False, server_default=sa.text("'{rag_search,capture_lead,escalate}'")),
-        sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.text("true")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "widget_id",
+            postgresql.UUID(as_uuid=True),
+            unique=True,
+            nullable=False,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "greeting",
+            sa.Text,
+            nullable=False,
+            server_default=sa.text("'Hi, how can I help you?'"),
+        ),
+        sa.Column(
+            "theme_color",
+            sa.String(7),
+            nullable=False,
+            server_default=sa.text("'#0066CC'"),
+        ),
+        sa.Column(
+            "enabled_tools",
+            postgresql.ARRAY(sa.Text),
+            nullable=False,
+            server_default=sa.text("'{rag_search,capture_lead,escalate}'"),
+        ),
+        sa.Column(
+            "is_active", sa.Boolean, nullable=False, server_default=sa.text("true")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_widget_configs_tenant_id", "widget_configs", ["tenant_id"])
     op.create_index("ix_widget_configs_widget_id", "widget_configs", ["widget_id"])
@@ -141,13 +281,25 @@ def upgrade() -> None:
     # audit_logs
     op.create_table(
         "audit_logs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("actor_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("actor_role", sa.String(50), nullable=False),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("action", sa.String(100), nullable=False),
-        sa.Column("payload", postgresql.JSONB, nullable=False, server_default=sa.text("'{}'")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "payload", postgresql.JSONB, nullable=False, server_default=sa.text("'{}'")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_audit_logs_tenant_id", "audit_logs", ["tenant_id"])
     op.create_index("ix_audit_logs_created_at", "audit_logs", ["created_at"])

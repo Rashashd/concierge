@@ -167,9 +167,7 @@ class TestClassifierBuilders:
 
     def test_build_classifier_object_returns_fixed(self) -> None:
         pred = _make_prediction("question", "rag_search")
-        entry = {
-            "classifier_prediction": pred.model_dump()
-        }
+        entry = {"classifier_prediction": pred.model_dump()}
         result = _build_classifier(entry)
         assert isinstance(result, _FixedClassifier)
 

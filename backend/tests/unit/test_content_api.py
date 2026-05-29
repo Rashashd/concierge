@@ -43,18 +43,19 @@ async def test_create_content_uses_admin_tenant_id() -> None:
     item_id = uuid4()
     item = _fake_item(item_id, admin.tenant_id)
 
-    async def fake_create(
-        *, session, tenant_id, title, body, content_type
-    ) -> object:
+    async def fake_create(*, session, tenant_id, title, body, content_type) -> object:
         assert tenant_id == admin.tenant_id
         return item
 
-    with patch(
-        "app.api.content.content_repo.create",
-        side_effect=fake_create,
-    ), patch(
-        "app.api.content.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.content.content_repo.create",
+            side_effect=fake_create,
+        ),
+        patch(
+            "app.api.content.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         body = ContentCreate(
             title="FAQ Item", body="This is the answer.", content_type="faq"
@@ -78,12 +79,15 @@ async def test_list_content_filters_by_admin_tenant() -> None:
         assert tenant_id == admin.tenant_id
         return [_fake_item(item_id, admin.tenant_id)]
 
-    with patch(
-        "app.api.content.content_repo.list_by_tenant",
-        side_effect=fake_list,
-    ), patch(
-        "app.api.content.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.content.content_repo.list_by_tenant",
+            side_effect=fake_list,
+        ),
+        patch(
+            "app.api.content.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         coro = router.routes[1].endpoint  # type: ignore[attr-defined]
         result = await coro(
@@ -112,12 +116,15 @@ async def test_update_content_uses_admin_tenant() -> None:
         assert content_id == item_id
         return _fake_item(item_id, admin.tenant_id, title=title or "Updated")
 
-    with patch(
-        "app.api.content.content_repo.update",
-        side_effect=fake_update,
-    ), patch(
-        "app.api.content.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.content.content_repo.update",
+            side_effect=fake_update,
+        ),
+        patch(
+            "app.api.content.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         body = ContentUpdate(title="Updated FAQ")
         coro = router.routes[2].endpoint  # type: ignore[attr-defined]
@@ -145,12 +152,15 @@ async def test_update_content_404_when_missing() -> None:
     ) -> None:
         return None
 
-    with patch(
-        "app.api.content.content_repo.update",
-        side_effect=fake_update,
-    ), patch(
-        "app.api.content.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.content.content_repo.update",
+            side_effect=fake_update,
+        ),
+        patch(
+            "app.api.content.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         body = ContentUpdate(title="Updated")
         coro = router.routes[2].endpoint  # type: ignore[attr-defined]
@@ -174,12 +184,15 @@ async def test_delete_content_uses_admin_tenant() -> None:
         assert content_id == item_id
         return True
 
-    with patch(
-        "app.api.content.content_repo.delete_by_id",
-        side_effect=fake_delete,
-    ), patch(
-        "app.api.content.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.content.content_repo.delete_by_id",
+            side_effect=fake_delete,
+        ),
+        patch(
+            "app.api.content.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         coro = router.routes[3].endpoint  # type: ignore[attr-defined]
         result = await coro(
@@ -197,12 +210,15 @@ async def test_delete_content_404_when_missing() -> None:
     async def fake_delete(*, session, tenant_id, content_id) -> bool:
         return False
 
-    with patch(
-        "app.api.content.content_repo.delete_by_id",
-        side_effect=fake_delete,
-    ), patch(
-        "app.api.content.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.content.content_repo.delete_by_id",
+            side_effect=fake_delete,
+        ),
+        patch(
+            "app.api.content.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         coro = router.routes[3].endpoint  # type: ignore[attr-defined]
         with pytest.raises(HTTPException) as exc_info:

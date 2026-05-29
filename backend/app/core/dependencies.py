@@ -152,7 +152,7 @@ def get_http_client(request: Request) -> httpx.AsyncClient:
 
 
 def get_redis(request: Request) -> aioredis.Redis:
-    return request.app.state.redis
+    return request.app.state.redis  # type: ignore[no-any-return]
 
 
 def get_llm_client(request: Request) -> ChatOpenAI | AzureChatOpenAI:
@@ -164,7 +164,7 @@ def get_embeddings_client(request: Request) -> AzureOpenAIEmbeddings | OpenAIEmb
 
 
 def get_reranker(request: Request) -> Reranker:
-    return request.app.state.reranker
+    return request.app.state.reranker  # type: ignore[no-any-return]
 
 
 def get_minio(request: Request) -> MinioClient:
@@ -172,7 +172,7 @@ def get_minio(request: Request) -> MinioClient:
 
 
 def get_redactor(request: Request) -> Redactor:
-    return request.app.state.redactor
+    return request.app.state.redactor  # type: ignore[no-any-return]
 
 
 def get_classifier_client(request: Request) -> ClassifierClient | None:

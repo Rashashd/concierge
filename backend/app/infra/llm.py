@@ -24,7 +24,7 @@ def get_llm(settings: Settings) -> ChatOpenAI | AzureChatOpenAI:
 
         return ChatGroq(  # type: ignore[return-value]
             api_key=settings.groq_api_key.get_secret_value(),
-            model="llama3-8b-8192",
+            model_name="llama3-8b-8192",
         )
     # default: openai
     return ChatOpenAI(

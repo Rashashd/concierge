@@ -8,7 +8,6 @@ from app.infra.minio import MinioClient
 from app.services.erasure import ErasureReport, erase_tenant
 from app.services.memory import RedisMemoryClient
 
-
 # ---------------------------------------------------------------------------
 # Fakes
 # ---------------------------------------------------------------------------
@@ -180,7 +179,9 @@ async def test_erase_tenant_deletes_chunks_before_content_items(
 
     chunks_idx = order.index("chunks")
     content_idx = order.index("content_items")
-    assert chunks_idx < content_idx, "chunks must be deleted before content_items (FK order)"
+    assert chunks_idx < content_idx, (
+        "chunks must be deleted before content_items (FK order)"
+    )
 
 
 @pytest.mark.asyncio
@@ -194,7 +195,9 @@ async def test_erase_tenant_writes_audit_log(
         return object()
 
     _patch_repos(monkeypatch)
-    monkeypatch.setattr("app.services.erasure.audit_repo.create", capturing_audit_create)
+    monkeypatch.setattr(
+        "app.services.erasure.audit_repo.create", capturing_audit_create
+    )
     tenant_id = uuid4()
     actor_id = uuid4()
 

@@ -88,11 +88,11 @@ def test_tenant_create_accepts_valid_slug() -> None:
 @pytest.mark.parametrize(
     "bad_slug",
     [
-        "Acme",         # uppercase
-        "acme corp",    # space
-        "acme_corp",    # underscore
-        "acme!",        # special char
-        "",             # empty
+        "Acme",  # uppercase
+        "acme corp",  # space
+        "acme_corp",  # underscore
+        "acme!",  # special char
+        "",  # empty
     ],
 )
 def test_tenant_create_rejects_invalid_slug(bad_slug: str) -> None:

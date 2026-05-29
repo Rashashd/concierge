@@ -14,14 +14,14 @@ import yaml
 from sklearn.metrics import classification_report, f1_score
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 MODEL_SERVER_DIR = REPO_ROOT / "model-server"
 DATA_PATH = REPO_ROOT / "notebooks" / "data" / "processed" / "classifier_test.csv"
 THRESHOLDS_PATH = REPO_ROOT / "ci" / "eval_thresholds.yaml"
 
 sys.path.insert(0, str(MODEL_SERVER_DIR))
 
-from app.inference import IntentClassifier  # noqa: E402
+from app.inference import IntentClassifier  # type: ignore[import-not-found]  # noqa: E402
 
 
 def _load_thresholds(path: Path) -> dict[str, Any]:

@@ -126,9 +126,7 @@ def test_retrieval_hit_by_fixture_detects_expected_path() -> None:
         == 2
     )
     assert (
-        expected_source_rank_by_fixture(
-            sources, ["missing.md"], chunk_fixture_paths
-        )
+        expected_source_rank_by_fixture(sources, ["missing.md"], chunk_fixture_paths)
         is None
     )
 
@@ -203,17 +201,16 @@ def test_expected_doc_precision_at_k_single_hop() -> None:
             text=f"c{i}",
             fixture_path=fp,
         )
-        for i, (cid, fp) in enumerate(
-            zip(chunk_ids, fixture_names, strict=True)
-        )
+        for i, (cid, fp) in enumerate(zip(chunk_ids, fixture_names, strict=True))
     ]
 
-    assert expected_doc_precision_at_k(
-        sources, chunk_fixture_paths, ["alpha-hours.md"]
-    ) == 0.6
-    assert expected_doc_precision_at_k(
-        [], chunk_fixture_paths, ["alpha-hours.md"]
-    ) == 0.0
+    assert (
+        expected_doc_precision_at_k(sources, chunk_fixture_paths, ["alpha-hours.md"])
+        == 0.6
+    )
+    assert (
+        expected_doc_precision_at_k([], chunk_fixture_paths, ["alpha-hours.md"]) == 0.0
+    )
 
 
 def test_expected_doc_precision_at_k_multi_hop() -> None:
@@ -240,9 +237,7 @@ def test_expected_doc_precision_at_k_multi_hop() -> None:
             text=f"c{i}",
             fixture_path=fp,
         )
-        for i, (cid, fp) in enumerate(
-            zip(chunk_ids, fixture_names, strict=True)
-        )
+        for i, (cid, fp) in enumerate(zip(chunk_ids, fixture_names, strict=True))
     ]
 
     expected_paths = ["alpha-hours.md", "alpha-cancel.md"]
@@ -272,14 +267,10 @@ def test_expected_doc_mrr_at_k_single_hop() -> None:
             text=f"c{i}",
             fixture_path=fp,
         )
-        for i, (cid, fp) in enumerate(
-            zip(chunk_ids, fixture_names, strict=True)
-        )
+        for i, (cid, fp) in enumerate(zip(chunk_ids, fixture_names, strict=True))
     ]
 
-    mrr = expected_doc_mrr_at_k(
-        sources, chunk_fixture_paths, ["alpha-hours.md"]
-    )
+    mrr = expected_doc_mrr_at_k(sources, chunk_fixture_paths, ["alpha-hours.md"])
     assert mrr == 0.5
 
 
@@ -307,9 +298,7 @@ def test_expected_doc_mrr_at_k_multi_hop() -> None:
             text=f"c{i}",
             fixture_path=fp,
         )
-        for i, (cid, fp) in enumerate(
-            zip(chunk_ids, fixture_names, strict=True)
-        )
+        for i, (cid, fp) in enumerate(zip(chunk_ids, fixture_names, strict=True))
     ]
 
     mrr = expected_doc_mrr_at_k(

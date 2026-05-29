@@ -81,6 +81,7 @@ class ChatRouteStatus(BaseModel):
 
 # Tool contracts
 
+
 class CaptureLeadInput(BaseModel):
     visitor_name: str | None = Field(default=None, max_length=255)
     contact: str = Field(..., max_length=320)
@@ -110,6 +111,7 @@ class EscalateOutput(BaseModel):
 
 # Tenant provisioning
 
+
 class TenantCostResponse(BaseModel):
     tenant_id: UUID
     day: date
@@ -135,6 +137,7 @@ class TenantResponse(BaseModel):
 
 
 # User schemas for fastapi-users
+
 
 class UserRead(fu_schemas.BaseUser[UUID]):
     role: str

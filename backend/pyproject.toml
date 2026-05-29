@@ -68,6 +68,10 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+module = ["hvac", "hvac.*", "pgvector", "pgvector.*", "boto3", "boto3.*", "botocore", "botocore.*", "presidio_analyzer", "presidio_analyzer.*", "presidio_anonymizer", "presidio_anonymizer.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "auto"
