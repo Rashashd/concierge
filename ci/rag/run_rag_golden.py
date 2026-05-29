@@ -626,6 +626,11 @@ def _evaluate_ragas_sync(
             for result in example_results
         ]
     )
+    # raise_exceptions=False lets RAGAS store NaN for failing metrics instead of
+    # crashing mid-evaluation.  ResponseRelevancy uses embeddings synchronously
+    # from inside RAGAS's own asyncio.run() loop, which can trigger a different
+    # HTTP code path than our preflight check.  We detect NaN below and raise a
+    # targeted error so the CI log is actionable.
     evaluation = evaluate(
         dataset,
         metrics=[
@@ -636,11 +641,14 @@ def _evaluate_ragas_sync(
         ],
         llm=llm,
         embeddings=embeddings,
-        raise_exceptions=True,
+        raise_exceptions=False,
         show_progress=False,
     )
     frame = evaluation.to_pandas()
-    return {
+
+    import math
+
+    scores = {
         "faithfulness": float(frame["faithfulness"].mean()),
         "answer_relevancy": float(frame["answer_relevancy"].mean()),
         "context_precision": float(
@@ -648,6 +656,19 @@ def _evaluate_ragas_sync(
         ),
         "context_recall": float(frame["context_recall"].mean()),
     }
+
+    nan_metrics = [name for name, value in scores.items() if math.isnan(value)]
+    if nan_metrics:
+        raise RuntimeError(
+            f"RAGAS metrics returned NaN: {nan_metrics}.\n"
+            "ResponseRelevancy requires a working embedding model.  "
+            "If only answer_relevancy is NaN, the embedding deployment is "
+            "misconfigured: check AZURE_OPENAI_EMBEDDING_DEPLOYMENT in Vault / "
+            "GitHub secrets — the name must match exactly what Azure Portal shows "
+            "under the Azure OpenAI resource → Deployments."
+        )
+
+    return scores
 
 
 def _build_report(
