@@ -36,7 +36,9 @@ class Tenant(Base):
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     llm_persona: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    guardrail_config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    guardrail_config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
     allowed_origins: Mapped[list[str]] = mapped_column(
         ARRAY(Text), nullable=False, default=list
     )

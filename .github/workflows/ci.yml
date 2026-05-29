@@ -166,7 +166,7 @@ jobs:
         with:
           enable-cache: true
       - name: Install model-server deps
-        run: uv sync --frozen
+        run: uv sync --frozen --group dev
         working-directory: model-server
       - name: Run classifier eval
         run: model-server/.venv/bin/python ci/classifier/run_classifier_eval.py
