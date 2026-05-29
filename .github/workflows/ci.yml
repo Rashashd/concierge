@@ -259,7 +259,7 @@ jobs:
         # Requires DATABASE_URL to be resolvable directly (bypasses Vault for migration only)
         env:
           DATABASE_URL: postgresql+asyncpg://ci_user:ci_password@localhost:5432/concierge_ci
-        run: backend/.venv/bin/alembic upgrade head
+        run: .venv/bin/alembic upgrade head
         working-directory: backend
 
       - name: Run RAG golden eval
