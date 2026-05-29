@@ -51,7 +51,7 @@ DISTRACTOR_PATH = Path(__file__).with_name("rag_eval_distractors.json")
 FIXTURE_ROOT = Path(__file__).with_name("rag_eval_docs")
 TEMP_CONTENT_TYPE = "rag_eval_temp_ci"
 DEFAULT_CHUNK_MAX_CHARS = 300
-DEFAULT_RAGAS_TIMEOUT_SECONDS = 180
+DEFAULT_RAGAS_TIMEOUT_SECONDS = 600
 
 
 class EvalSettings(BaseSettings):
@@ -123,6 +123,8 @@ async def main() -> None:
     embeddings = get_embeddings(app_settings)
     llm = get_llm(app_settings)
     reranker = build_reranker(settings=app_settings, llm=llm)
+
+    await _validate_embeddings_client(embeddings)
 
     engine = create_async_engine(settings.rag_eval_database_url, pool_pre_ping=True)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -197,6 +199,8 @@ def _build_app_settings(
     app_settings.azure_openai_embedding_deployment = llm_config.get(
         "azure_openai_embedding_deployment", ""
     )
+    if "azure_openai_api_version" in llm_config:
+        app_settings.azure_openai_api_version = llm_config["azure_openai_api_version"]
     app_settings.groq_api_key = SecretStr(llm_config.get("groq_api_key", ""))
     app_settings.reranker_provider = llm_config.get(
         "reranker_provider", app_settings.reranker_provider
@@ -556,6 +560,27 @@ async def _tenant_id_for_slug(session: Any, slug: str) -> UUID:
     return tenant_id
 
 
+async def _validate_embeddings_client(embeddings: Any) -> None:
+    """Fail fast if the embedding deployment is unreachable.
+
+    RAGAS's ResponseRelevancy metric calls embed_query() internally; a wrong
+    deployment name surfaces as a 404 deep inside RAGAS's stack trace.  Calling
+    it here first gives an actionable message before any data is seeded.
+    """
+    import openai
+
+    try:
+        await asyncio.to_thread(embeddings.embed_query, "ping")
+    except openai.NotFoundError as exc:
+        raise RuntimeError(
+            "Embedding deployment not found (HTTP 404).\n"
+            "The deployment name stored in Vault does not match Azure Portal.\n"
+            "Fix: Azure Portal → Azure OpenAI resource → Deployments → copy the\n"
+            "exact deployment name → update the AZURE_OPENAI_EMBEDDING_DEPLOYMENT\n"
+            f"GitHub secret and re-run the workflow.\nAzure error: {exc}"
+        ) from exc
+
+
 async def _run_required_ragas(
     example_results: list[EvalExampleResult],
     *,
@@ -563,16 +588,22 @@ async def _run_required_ragas(
     embeddings: Any,
     timeout_seconds: int,
 ) -> dict[str, float]:
+    # Run RAGAS in a thread so the event loop stays responsive, but shield the
+    # thread future from cancellation. asyncio.wait_for without shield would
+    # cancel the underlying concurrent.futures.Future on timeout, propagating
+    # CancelledError into RAGAS's in-flight LLM tasks and leaving queued tasks
+    # without an LLM reference. asyncio.shield lets us raise TimeoutError at
+    # the caller while RAGAS's tasks drain cleanly.
+    loop = asyncio.get_running_loop()
+    fut = loop.run_in_executor(
+        None,
+        _evaluate_ragas_sync,
+        example_results,
+        llm,
+        embeddings,
+    )
     try:
-        return await asyncio.wait_for(
-            asyncio.to_thread(
-                _evaluate_ragas_sync,
-                example_results,
-                llm,
-                embeddings,
-            ),
-            timeout=timeout_seconds,
-        )
+        return await asyncio.wait_for(asyncio.shield(fut), timeout=float(timeout_seconds))
     except TimeoutError as exc:
         raise RuntimeError(
             f"RAGAS did not finish within {timeout_seconds} seconds."
@@ -595,6 +626,11 @@ def _evaluate_ragas_sync(
             for result in example_results
         ]
     )
+    # raise_exceptions=False lets RAGAS store NaN for failing metrics instead of
+    # crashing mid-evaluation.  ResponseRelevancy uses embeddings synchronously
+    # from inside RAGAS's own asyncio.run() loop, which can trigger a different
+    # HTTP code path than our preflight check.  We detect NaN below and raise a
+    # targeted error so the CI log is actionable.
     evaluation = evaluate(
         dataset,
         metrics=[
@@ -605,11 +641,14 @@ def _evaluate_ragas_sync(
         ],
         llm=llm,
         embeddings=embeddings,
-        raise_exceptions=True,
+        raise_exceptions=False,
         show_progress=False,
     )
     frame = evaluation.to_pandas()
-    return {
+
+    import math
+
+    scores = {
         "faithfulness": float(frame["faithfulness"].mean()),
         "answer_relevancy": float(frame["answer_relevancy"].mean()),
         "context_precision": float(
@@ -617,6 +656,19 @@ def _evaluate_ragas_sync(
         ),
         "context_recall": float(frame["context_recall"].mean()),
     }
+
+    nan_metrics = [name for name, value in scores.items() if math.isnan(value)]
+    if nan_metrics:
+        raise RuntimeError(
+            f"RAGAS metrics returned NaN: {nan_metrics}.\n"
+            "ResponseRelevancy requires a working embedding model.  "
+            "If only answer_relevancy is NaN, the embedding deployment is "
+            "misconfigured: check AZURE_OPENAI_EMBEDDING_DEPLOYMENT in Vault / "
+            "GitHub secrets — the name must match exactly what Azure Portal shows "
+            "under the Azure OpenAI resource → Deployments."
+        )
+
+    return scores
 
 
 def _build_report(

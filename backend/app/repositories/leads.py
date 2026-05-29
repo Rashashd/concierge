@@ -75,7 +75,10 @@ async def count_recent_by_session(
     session_id: str,
     window_seconds: int = 3600,
 ) -> int:
-    """Count recent lead writes for a session_id."""
+    """Count lead writes for a session_id within the rolling window.
+
+    Used for rate limiting.
+    """
     since = datetime.now(UTC) - timedelta(seconds=window_seconds)
     result = await session.execute(
         select(func.count()).where(
@@ -90,4 +93,4 @@ async def count_recent_by_session(
 async def delete_by_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> int:
     """Delete all leads for a tenant. Called by the erasure service."""
     result = await session.execute(delete(Lead).where(Lead.tenant_id == tenant_id))
-    return result.rowcount
+    return result.rowcount  # type: ignore[attr-defined, no-any-return]

@@ -22,6 +22,8 @@ def _mock_session() -> MagicMock:
     ctx.__aexit__ = AsyncMock(return_value=False)
     session = MagicMock()
     session.begin.return_value = ctx
+    session.flush = AsyncMock()
+    session.refresh = AsyncMock()
     return session
 
 

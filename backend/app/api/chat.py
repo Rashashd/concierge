@@ -47,9 +47,7 @@ async def chat(
     reranker: Annotated[Reranker, Depends(get_reranker)],
     redactor: Annotated[Redactor, Depends(get_redactor)],
     settings: Annotated[Settings, Depends(get_settings)],
-    classifier: Annotated[
-        ClassifierClient | None, Depends(get_classifier_client)
-    ],
+    classifier: Annotated[ClassifierClient | None, Depends(get_classifier_client)],
     guardrails: Annotated[GuardrailsClient, Depends(get_guardrails_client)],
 ) -> ChatResponse:
     tenant = await tenant_repo.get_by_id(session, tenant_context.tenant_id)
@@ -62,7 +60,7 @@ async def chat(
         )
 
     safe_message = redactor.redact(request.message)
-    tenant_guardrail_config: dict = tenant.guardrail_config if tenant else {}
+    tenant_guardrail_config: dict[str, Any] = tenant.guardrail_config if tenant else {}
 
     try:
         input_check = await guardrails.check_input(
@@ -76,6 +74,8 @@ async def chat(
                 or "I'm sorry, I can't help with that request.",
                 conversation_id=request.conversation_id,
             )
+        if input_check.safe_text:
+            safe_message = input_check.safe_text
     except Exception as exc:
         logger.warning("guardrails.check_input_failed", error_type=type(exc).__name__)
 

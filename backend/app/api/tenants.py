@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, date, datetime
-from typing import Annotated
+from typing import Annotated, cast
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -20,6 +20,7 @@ from app.repositories import cost_records as cost_repo
 from app.repositories import tenants as tenant_repo
 from app.schemas import TenantCostResponse, TenantCreate, TenantResponse, UserContext
 from app.services.erasure import ErasureReport, erase_tenant
+from app.services.memory import RedisMemoryClient
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
 
@@ -110,6 +111,6 @@ async def erase_tenant_data(
         actor_id=user.user_id,
         actor_role=user.role,
         session=session,
-        redis=redis,
+        redis=cast(RedisMemoryClient, redis),
         minio=minio,
     )

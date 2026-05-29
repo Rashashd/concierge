@@ -14,7 +14,6 @@ from uuid import UUID
 import hvac
 import structlog
 from fastapi import Depends, FastAPI, Header, HTTPException, status
-from nemoguardrails import LLMRails, RailsConfig
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -85,11 +84,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 os.environ["OPENAI_API_KEY"] = openai_key
                 logger.info("guardrails.vault_key_loaded")
         except Exception as exc:
-            logger.warning(
-                "guardrails.vault_key_failed", error_type=type(exc).__name__
-            )
+            logger.warning("guardrails.vault_key_failed", error_type=type(exc).__name__)
 
     if settings.nemo_enabled:
+        from nemoguardrails import LLMRails, RailsConfig
+
         config = RailsConfig.from_path(str(CONFIG_DIR))
         app.state.rails = LLMRails(config)
         logger.info("guardrails.nemo_loaded", config_dir=str(CONFIG_DIR))
@@ -144,7 +143,7 @@ def _looks_like_refusal(text: str) -> bool:
 
 async def _run_nemo_check(message: str) -> str | None:
     """Run the message through NeMo if the rails object is loaded."""
-    rails: LLMRails | None = app.state.rails
+    rails = app.state.rails
 
     if rails is None:
         return None
@@ -190,7 +189,9 @@ async def check_input(request: GuardrailRequest) -> GuardrailResponse:
             triggered_rules=deterministic.triggered_rules,
         )
 
-    nemo_response = await _run_nemo_check(request.message)
+    sanitized_message = deterministic.safe_text or redact_pii(request.message)
+
+    nemo_response = await _run_nemo_check(sanitized_message)
 
     if nemo_response and _looks_like_refusal(nemo_response):
         return GuardrailResponse(
@@ -203,7 +204,7 @@ async def check_input(request: GuardrailRequest) -> GuardrailResponse:
     return GuardrailResponse(
         decision="allow",
         reason=None,
-        safe_text=deterministic.safe_text or redact_pii(request.message),
+        safe_text=sanitized_message,
         triggered_rules=[],
     )
 

@@ -84,7 +84,7 @@ async def delete_by_id(
             ContentItem.tenant_id == tenant_id,
         )
     )
-    return result.rowcount > 0
+    return result.rowcount > 0  # type: ignore[attr-defined, no-any-return]
 
 
 async def delete_by_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> int:
@@ -92,4 +92,4 @@ async def delete_by_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> int:
     result = await session.execute(
         delete(ContentItem).where(ContentItem.tenant_id == tenant_id)
     )
-    return result.rowcount
+    return result.rowcount  # type: ignore[attr-defined, no-any-return]

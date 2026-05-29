@@ -8,9 +8,7 @@ from app.infra.vault import VaultClient, create_vault_client
 def _client_with(data: dict) -> VaultClient:
     client = VaultClient.__new__(VaultClient)
     mock_hvac = MagicMock()
-    mock_hvac.secrets.kv.v2.read_secret_version.return_value = {
-        "data": {"data": data}
-    }
+    mock_hvac.secrets.kv.v2.read_secret_version.return_value = {"data": {"data": data}}
     client._client = mock_hvac
     return client
 

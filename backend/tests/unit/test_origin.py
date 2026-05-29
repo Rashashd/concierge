@@ -53,24 +53,16 @@ class TestIsOriginAllowed:
         assert is_origin_allowed(None, ["https://example.com"]) is False
 
     def test_exact_allowed_origin_passes(self) -> None:
-        assert (
-            is_origin_allowed("https://example.com", ["https://example.com"])
-            is True
-        )
+        assert is_origin_allowed("https://example.com", ["https://example.com"]) is True
 
     def test_normalized_allowed_origin_passes(self) -> None:
         assert (
-            is_origin_allowed(
-                "https://EXAMPLE.COM/", ["HTTPS://example.com"]
-            )
-            is True
+            is_origin_allowed("https://EXAMPLE.COM/", ["HTTPS://example.com"]) is True
         )
 
     def test_different_port_fails(self) -> None:
         assert (
-            is_origin_allowed(
-                "https://example.com:3000", ["https://example.com:8080"]
-            )
+            is_origin_allowed("https://example.com:3000", ["https://example.com:8080"])
             is False
         )
 
@@ -79,22 +71,14 @@ class TestIsOriginAllowed:
 
     def test_invalid_configured_origin_is_ignored(self) -> None:
         assert (
-            is_origin_allowed(
-                "https://safe.com", ["    ", "https://safe.com"]
-            )
-            is True
+            is_origin_allowed("https://safe.com", ["    ", "https://safe.com"]) is True
         )
 
     def test_non_http_origin_returns_false(self) -> None:
-        assert (
-            is_origin_allowed("ftp://example.com", ["https://example.com"])
-            is False
-        )
+        assert is_origin_allowed("ftp://example.com", ["https://example.com"]) is False
 
     def test_origin_with_path_rejected_even_if_host_allowed(self) -> None:
         assert (
-            is_origin_allowed(
-                "https://example.com/foo", ["https://example.com"]
-            )
+            is_origin_allowed("https://example.com/foo", ["https://example.com"])
             is False
         )

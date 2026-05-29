@@ -19,13 +19,13 @@ from app.db.models import User
 
 async def get_user_db(
     request: Request,
-) -> AsyncGenerator[SQLAlchemyUserDatabase, None]:
+) -> AsyncGenerator[SQLAlchemyUserDatabase[User, uuid.UUID], None]:  # type: ignore[type-var]
     """SQLAlchemy adapter using the lifespan session factory."""
     async with request.app.state.session_factory() as session:
-        yield SQLAlchemyUserDatabase(session, User)
+        yield SQLAlchemyUserDatabase(session, User)  # type: ignore[type-var]
 
 
-class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
+class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):  # type: ignore[type-var]
     """Reads reset/verification secrets from settings at instantiation time."""
 
     # Class-level placeholders — overridden per-instance in __init__
@@ -74,4 +74,4 @@ auth_backend = AuthenticationBackend(
     get_strategy=_get_jwt_strategy,
 )
 
-fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
+fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])  # type: ignore[type-var]

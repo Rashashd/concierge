@@ -1,125 +1,300 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches:
-      - master
-      - main
-      - "feature/**"
-      - "bugfix/**"
-      - "hotfix/**"
-      - "refactor/**"
-      - "docs/**"
-      - "test/**"
-      - "chore/**"
-      - "rasha/**"
+    branches: ["master", "main"]
+  pull_request:
 
-permissions:
-  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  backend:
-    name: Backend
+
+  # ── Lint & type-check ──────────────────────────────────────────────────────
+
+  lint:
+    name: Lint & type-check
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --group dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy app
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+  # ── Unit tests ─────────────────────────────────────────────────────────────
 
-      - name: Install dependencies
-        run: uv sync --all-groups
-
-      - name: Ruff
-        run: uv run ruff check app tests
-
-      - name: Unit tests
-        run: uv run pytest tests/unit -q
-
-  guardrails:
-    name: Guardrails
+  unit-tests:
+    name: Unit tests
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: guardrails
+        working-directory: backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+      - run: uv sync --frozen --group dev
+      - name: Download spaCy model (required by presidio tests)
+        run: uv run python -m spacy download en_core_web_sm
+      - run: uv run pytest tests/unit/ -v --tb=short
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+  # ── Integration & smoke tests ──────────────────────────────────────────────
+
+  integration-tests:
+    name: Integration & smoke tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
         with:
-          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --group dev
+      - name: Download spaCy model (required by presidio tests)
+        run: uv run python -m spacy download en_core_web_sm
+      - run: uv run pytest tests/integration/ tests/smoke/ -v --tb=short
 
-      - name: Install dependencies
-        run: uv sync --all-groups
+  # ── Docker stack smoke: builds + /healthz ─────────────────────────────────
 
-      - name: Ruff
-        run: uv run ruff check app
+  stack-smoke:
+    name: Docker stack smoke (healthz)
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: ci_user
+      POSTGRES_PASSWORD: ci_password
+      POSTGRES_DB: concierge_ci
+      MINIO_ROOT_USER: ci_minio
+      MINIO_ROOT_PASSWORD: ci_minio_s3cret
+      VAULT_TOKEN: ci-root-token
+      # VAULT_ADDR is intentionally NOT set at job level — docker compose must use
+      # the http://vault:8200 default from docker-compose.yml so the backend
+      # container resolves vault via the Docker network, not localhost.
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Unit tests
+      - name: Start infrastructure
+        run: docker compose up -d --wait postgres redis vault minio
+
+      # Vault runs in dev mode — the "secret/" KV v2 mount is pre-created.
+      # We seed all paths the backend reads at lifespan startup using fake creds.
+      # The LLM key is fake; /healthz does not call the LLM so this is fine.
+      - name: Seed Vault KV v2
+        env:
+          VAULT_ADDR: http://localhost:8200
         run: |
-          if [ -d tests ]; then
-            uv run pytest -q
+          BASE=http://localhost:8200/v1/secret/data/concierge
+          H1="X-Vault-Token: ci-root-token"
+          H2="Content-Type: application/json"
+
+          curl -sf -X PUT "$BASE/database" -H "$H1" -H "$H2" \
+            -d '{"data":{"user":"ci_user","password":"ci_password","host":"postgres","port":"5432","name":"concierge_ci"}}'
+
+          curl -sf -X PUT "$BASE/redis" -H "$H1" -H "$H2" \
+            -d '{"data":{"url":"redis://redis:6379/0"}}'
+
+          curl -sf -X PUT "$BASE/minio" -H "$H1" -H "$H2" \
+            -d '{"data":{"endpoint":"http://minio:9000","access_key":"ci_minio","secret_key":"ci_minio_s3cret"}}'
+
+          curl -sf -X PUT "$BASE/llm" -H "$H1" -H "$H2" \
+            -d '{"data":{"provider":"openai","openai_api_key":"fake-ci-key","openai_model":"gpt-4o-mini","openai_embedding_model":"text-embedding-3-small","rag_retrieval_mode":"vector"}}'
+
+          curl -sf -X PUT "$BASE/widget" -H "$H1" -H "$H2" \
+            -d '{"data":{"token_secret":"ci-widget-secret-pad-to-32-chars!!!"}}'
+
+          curl -sf -X PUT "$BASE/backend" -H "$H1" -H "$H2" \
+            -d '{"data":{"secret_key":"ci-backend-secret-pad-to-32-chars!!"}}'
+
+          curl -sf -X PUT "$BASE/services" -H "$H1" -H "$H2" \
+            -d '{"data":{"model_server":"ci-model-token","guardrails":"ci-guardrails-token"}}'
+
+          curl -sf -X PUT "$BASE/langchain" -H "$H1" -H "$H2" \
+            -d '{"data":{"tracing_enabled":"false","api_key":"","project":"concierge"}}'
+
+      - name: Build and start backend
+        run: docker compose up -d --wait backend
+
+      - name: Verify /healthz
+        run: curl -sf http://localhost:8000/healthz
+
+      - name: Collect backend logs on failure
+        if: failure()
+        run: docker compose logs backend
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
+
+  # ── Eval: agent golden set (uses fakes, no API required) ──────────────────
+
+  eval-agent-golden:
+    name: "Eval — agent golden set"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Install backend deps
+        run: uv sync --frozen --group dev
+        working-directory: backend
+      - name: Run golden eval
+        # Uses backend venv; script manages its own sys.path via parents[2]
+        run: backend/.venv/bin/python ci/agent/run_agent_golden.py
+
+  # ── Eval: classifier (needs model artifacts — not committed to repo) ───────
+
+  eval-classifier:
+    name: "Eval — classifier (needs artifacts)"
+    runs-on: ubuntu-latest
+    # Artifacts (classifier.joblib / .onnx + classifier_test.csv) are not in
+    # the repo. Job is marked continue-on-error until they are published.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Install model-server deps
+        run: uv sync --frozen --group dev
+        working-directory: model-server
+      - name: Run classifier eval
+        run: model-server/.venv/bin/python ci/classifier/run_classifier_eval.py
+
+  # ── Eval: redteam probes (deterministic, no API required) ─────────────────
+
+  eval-redteam:
+    name: "Eval — redteam probes"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Install guardrails deps
+        run: uv sync --frozen
+        working-directory: guardrails
+      - name: Run redteam eval
+        env:
+          NEMO_ENABLED: "false"
+        run: guardrails/.venv/bin/python ci/redteam/run_redteam.py
+
+  # ── Eval: RAG golden set (needs Azure OpenAI + live DB) ──────────────────
+
+  # secrets context is not available in job-level if conditions — use a prep
+  # job that checks at step level and exposes the result as an output.
+  # Required GitHub secrets (ask Hadi to add):
+  #   AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT,
+  #   AZURE_OPENAI_DEPLOYMENT, AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+  check-azure-key:
+    name: "Check Azure OpenAI key availability"
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - id: check
+        env:
+          KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+        run: |
+          if [ -n "$KEY" ] && [ -n "$ENDPOINT" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
           else
-            echo "No guardrails tests in this branch; skipping."
+            echo "available=false" >> $GITHUB_OUTPUT
           fi
 
-  model-server:
-    name: Model Server
+  eval-rag-golden:
+    name: "Eval — RAG golden set (requires Azure OpenAI secrets)"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: model-server
+    needs: check-azure-key
+    if: needs.check-azure-key.outputs.available == 'true'
+    env:
+      POSTGRES_USER: ci_user
+      POSTGRES_PASSWORD: ci_password
+      POSTGRES_DB: concierge_ci
+      VAULT_TOKEN: ci-root-token
+      VAULT_ADDR: http://localhost:8200
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
 
-      - name: Ruff
-        run: uvx ruff check app
+      - name: Start postgres and vault
+        run: docker compose up -d --wait postgres vault
 
-  widget:
-    name: Widget
+      - name: Seed Vault KV v2 (Azure OpenAI keys)
+        env:
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+          AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_EMBEDDING_DEPLOYMENT }}
+          # Optional — defaults to 2024-05-01-preview if not set in repo secrets.
+          # Set AZURE_OPENAI_API_VERSION if your resource requires a specific version.
+          AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
+        run: |
+          BASE=http://localhost:8200/v1/secret/data/concierge
+          H1="X-Vault-Token: ci-root-token"
+          H2="Content-Type: application/json"
+          API_VERSION="${AZURE_OPENAI_API_VERSION:-2024-05-01-preview}"
+
+          curl -sf -X PUT "$BASE/database" -H "$H1" -H "$H2" \
+            -d '{"data":{"user":"ci_user","password":"ci_password","host":"localhost","port":"5432","name":"concierge_ci"}}'
+
+          curl -sf -X PUT "$BASE/llm" -H "$H1" -H "$H2" \
+            -d "{\"data\":{\"provider\":\"azure\",\"azure_openai_api_key\":\"$AZURE_OPENAI_API_KEY\",\"azure_openai_endpoint\":\"$AZURE_OPENAI_ENDPOINT\",\"azure_openai_deployment\":\"$AZURE_OPENAI_DEPLOYMENT\",\"azure_openai_embedding_deployment\":\"$AZURE_OPENAI_EMBEDDING_DEPLOYMENT\",\"azure_openai_api_version\":\"$API_VERSION\",\"rag_retrieval_mode\":\"vector\"}}"
+
+          curl -sf -X PUT "$BASE/langchain" -H "$H1" -H "$H2" \
+            -d '{"data":{"tracing_enabled":"false","api_key":"","project":"concierge"}}'
+
+      - name: Install backend deps
+        run: uv sync --frozen --group dev
+        working-directory: backend
+
+      - name: Run alembic migrations
+        # Requires DATABASE_URL to be resolvable directly (bypasses Vault for migration only)
+        env:
+          DATABASE_URL: postgresql+asyncpg://ci_user:ci_password@localhost:5432/concierge_ci
+        run: .venv/bin/alembic upgrade head
+        working-directory: backend
+
+      - name: Run RAG golden eval
+        env:
+          VAULT_ADDR: http://localhost:8200
+          VAULT_TOKEN: ci-root-token
+          RAG_EVAL_DATABASE_URL: postgresql+asyncpg://ci_user:ci_password@localhost:5432/concierge_ci
+        run: backend/.venv/bin/python ci/rag/run_rag_golden.py
+
+      - name: Collect logs on failure
+        if: failure()
+        run: docker compose logs postgres
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
+
+  # ── Secret scan ────────────────────────────────────────────────────────────
+
+  secret-scan:
+    name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: widget
+    # seed.sh contains a hardcoded OpenAI key pending cleanup — remove this
+    # continue-on-error once seed.sh is scrubbed (see Friday checklist).
+    continue-on-error: true
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: widget/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

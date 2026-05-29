@@ -64,7 +64,7 @@ class Reranker:
 class LLMReranker(Reranker):
     """Reranker that uses an LLM with JSON-mode scoring."""
 
-    def __init__(self, llm: object) -> None:
+    def __init__(self, llm: Any) -> None:
         self._llm = llm
 
     async def rerank(
@@ -72,9 +72,7 @@ class LLMReranker(Reranker):
         query: str,
         candidates: list[RerankCandidate],
     ) -> list[RerankDecision]:
-        candidates_text = "\n".join(
-            f"Index {c.index}: {c.text}" for c in candidates
-        )
+        candidates_text = "\n".join(f"Index {c.index}: {c.text}" for c in candidates)
         indexes_str = ", ".join(str(c.index) for c in candidates)
         user_prompt = (
             f"User query: {query}\n\n"
@@ -90,11 +88,7 @@ class LLMReranker(Reranker):
                     ("human", user_prompt),
                 ]
             )
-            content = (
-                result.content
-                if hasattr(result, "content")
-                else str(result)
-            )
+            content = result.content if hasattr(result, "content") else str(result)
             decisions = _parse_llm_json(content, candidates)
         except Exception as exc:
             logger.warning("llm_reranker_failed", error_type=type(exc).__name__)
@@ -187,16 +181,11 @@ def _parse_llm_json(
     if not isinstance(parsed, dict) or "decisions" not in parsed:
         raise ValueError("Reranker output missing 'decisions' key")
 
-    return [
-        RerankDecision.model_validate(d) for d in parsed["decisions"]
-    ]
+    return [RerankDecision.model_validate(d) for d in parsed["decisions"]]
 
 
 def _fallback_decisions(candidates: list[RerankCandidate]) -> list[RerankDecision]:
-    return [
-        RerankDecision(index=c.index, score=0.5)
-        for c in candidates
-    ]
+    return [RerankDecision(index=c.index, score=0.5) for c in candidates]
 
 
 def _validate_decisions(

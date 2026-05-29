@@ -107,7 +107,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 60s
 
   model-server:
     build:
@@ -139,6 +140,7 @@ services:
       VAULT_TOKEN: ${VAULT_TOKEN}
       LOG_LEVEL: INFO
       NEMO_ENABLED: ${NEMO_ENABLED:-true}
+      GUARDRAILS_SERVICE_TOKEN: ${GUARDRAILS_SERVICE_TOKEN:-local-guardrails-token}
     ports:
       - "8002:8002"
     depends_on:

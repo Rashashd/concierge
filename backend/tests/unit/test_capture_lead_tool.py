@@ -21,12 +21,15 @@ async def test_creates_lead_when_under_limit(fake_session: AsyncMock) -> None:
         return type("FakeLead", (), {"id": lead_id})()
 
     fake_session.reset_mock()
-    with patch(
-        "app.tools.capture_lead.lead_repo.create",
-        side_effect=fake_create,
-    ), patch(
-        "app.tools.capture_lead.lead_repo.count_recent_by_session",
-        AsyncMock(return_value=0),
+    with (
+        patch(
+            "app.tools.capture_lead.lead_repo.create",
+            side_effect=fake_create,
+        ),
+        patch(
+            "app.tools.capture_lead.lead_repo.count_recent_by_session",
+            AsyncMock(return_value=0),
+        ),
     ):
         result = await capture_lead(
             tenant_id=tenant_id,

@@ -59,12 +59,15 @@ async def test_list_leads_filters_by_user_tenant() -> None:
             )()
         ]
 
-    with patch(
-        "app.api.leads.lead_repo.list_by_tenant",
-        side_effect=fake_list_by_tenant,
-    ), patch(
-        "app.api.leads.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.leads.lead_repo.list_by_tenant",
+            side_effect=fake_list_by_tenant,
+        ),
+        patch(
+            "app.api.leads.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         coro = router.routes[0].endpoint  # type: ignore[attr-defined]
         result = await coro(
@@ -82,9 +85,7 @@ async def test_patch_lead_updates_status() -> None:
     lead_id = uuid4()
     dt = type("dt", (), {"isoformat": lambda s: "2025-01-01T00:00:00"})
 
-    async def fake_update_status(
-        *, session, tenant_id, lead_id, status
-    ) -> object:
+    async def fake_update_status(*, session, tenant_id, lead_id, status) -> object:
         return type(
             "FakeLead",
             (),
@@ -100,12 +101,15 @@ async def test_patch_lead_updates_status() -> None:
             },
         )()
 
-    with patch(
-        "app.api.leads.lead_repo.update_status",
-        side_effect=fake_update_status,
-    ), patch(
-        "app.api.leads.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.leads.lead_repo.update_status",
+            side_effect=fake_update_status,
+        ),
+        patch(
+            "app.api.leads.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         body = LeadStatusUpdate(status="contacted")
         coro = router.routes[1].endpoint  # type: ignore[attr-defined]
@@ -125,12 +129,15 @@ async def test_patch_lead_returns_404_when_not_found() -> None:
     async def fake_update_status(*, session, tenant_id, lead_id, status) -> None:
         return None
 
-    with patch(
-        "app.api.leads.lead_repo.update_status",
-        side_effect=fake_update_status,
-    ), patch(
-        "app.api.leads.get_admin_tenant_session",
-        AsyncMock(return_value=AsyncMock()),
+    with (
+        patch(
+            "app.api.leads.lead_repo.update_status",
+            side_effect=fake_update_status,
+        ),
+        patch(
+            "app.api.leads.get_admin_tenant_session",
+            AsyncMock(return_value=AsyncMock()),
+        ),
     ):
         body = LeadStatusUpdate(status="contacted")
         coro = router.routes[1].endpoint  # type: ignore[attr-defined]

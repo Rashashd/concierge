@@ -85,14 +85,19 @@ class Settings(BaseSettings):
         errors: list[str] = []
 
         _required_str = [
-            "database_url", "redis_url", "minio_endpoint", "minio_access_key",
+            "database_url",
+            "redis_url",
+            "minio_endpoint",
+            "minio_access_key",
         ]
         for field in _required_str:
             if not getattr(self, field):
                 errors.append(field)
 
         _required_secret = [
-            "backend_secret_key", "widget_token_secret", "minio_secret_key",
+            "backend_secret_key",
+            "widget_token_secret",
+            "minio_secret_key",
         ]
         for field in _required_secret:
             if not getattr(self, field).get_secret_value():

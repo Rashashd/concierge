@@ -53,9 +53,7 @@ class FakeMemory:
         self.saved_turns: list[dict[str, str]] = []
 
     def save(self, user_message: str, assistant_message: str) -> None:
-        self.saved_turns.append(
-            {"user": user_message, "assistant": assistant_message}
-        )
+        self.saved_turns.append({"user": user_message, "assistant": assistant_message})
 
 
 @dataclass
@@ -102,9 +100,7 @@ async def _run_example(entry: dict[str, Any]) -> dict[str, Any]:
     failures: list[str] = []
 
     if route.action != expected_action:
-        failures.append(
-            f"expected action '{expected_action}', got '{route.action}'"
-        )
+        failures.append(f"expected action '{expected_action}', got '{route.action}'")
 
     if agent_called != should_call_agent:
         failures.append(
@@ -138,9 +134,7 @@ async def _run_example(entry: dict[str, Any]) -> dict[str, Any]:
 
 async def run_eval(dataset_path: str | None = None) -> dict[str, Any]:
     path = Path(dataset_path) if dataset_path else GOLDEN_PATH
-    dataset: list[dict[str, Any]] = json.loads(
-        path.read_text(encoding="utf-8")
-    )
+    dataset: list[dict[str, Any]] = json.loads(path.read_text(encoding="utf-8"))
 
     for entry in dataset:
         if entry.get("tenant_id_source") != "verified_context":

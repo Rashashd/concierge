@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -35,7 +36,9 @@ class Tenant(Base):
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     llm_persona: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    guardrail_config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    guardrail_config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
     allowed_origins: Mapped[list[str]] = mapped_column(
         ARRAY(Text), nullable=False, default=list
     )
@@ -130,7 +133,7 @@ class Chunk(Base):
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float]] = mapped_column(Vector(1536), nullable=False)
-    chunk_metadata: Mapped[dict] = mapped_column(
+    chunk_metadata: Mapped[dict[str, Any]] = mapped_column(
         JSONB, name="metadata", nullable=False, default=dict
     )
     created_at: Mapped[datetime] = mapped_column(
@@ -215,7 +218,7 @@ class AuditLog(Base):
         UUID(as_uuid=True), nullable=True
     )
     action: Mapped[str] = mapped_column(String(100), nullable=False)
-    payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
