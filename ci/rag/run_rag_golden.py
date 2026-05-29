@@ -124,6 +124,8 @@ async def main() -> None:
     llm = get_llm(app_settings)
     reranker = build_reranker(settings=app_settings, llm=llm)
 
+    await _validate_embeddings_client(embeddings)
+
     engine = create_async_engine(settings.rag_eval_database_url, pool_pre_ping=True)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
@@ -556,6 +558,27 @@ async def _tenant_id_for_slug(session: Any, slug: str) -> UUID:
     if tenant_id is None:
         raise RuntimeError(f"Eval tenant not found: {slug}")
     return tenant_id
+
+
+async def _validate_embeddings_client(embeddings: Any) -> None:
+    """Fail fast if the embedding deployment is unreachable.
+
+    RAGAS's ResponseRelevancy metric calls embed_query() internally; a wrong
+    deployment name surfaces as a 404 deep inside RAGAS's stack trace.  Calling
+    it here first gives an actionable message before any data is seeded.
+    """
+    import openai
+
+    try:
+        await asyncio.to_thread(embeddings.embed_query, "ping")
+    except openai.NotFoundError as exc:
+        raise RuntimeError(
+            "Embedding deployment not found (HTTP 404).\n"
+            "The deployment name stored in Vault does not match Azure Portal.\n"
+            "Fix: Azure Portal → Azure OpenAI resource → Deployments → copy the\n"
+            "exact deployment name → update the AZURE_OPENAI_EMBEDDING_DEPLOYMENT\n"
+            f"GitHub secret and re-run the workflow.\nAzure error: {exc}"
+        ) from exc
 
 
 async def _run_required_ragas(
