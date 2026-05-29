@@ -142,3 +142,62 @@ to each AI response in the LangGraph turn. Summing `input_tokens`,
 stable per-tenant usage record even when the turn contains multiple LLM calls.
 We intentionally store token counts, not money, because pricing policy is a
 separate business concern and changes more often than raw token accounting.
+
+## Classifier Model Choice: ML vs DL vs LLM
+
+Decision: ship the classical TF-IDF + Logistic Regression classifier in the
+model-server, while keeping the small DL/ONNX model and the hosted-API LLM
+zero-shot baseline as documented comparison baselines.
+
+Reason: all three required approaches were evaluated on the same held-out test
+set for the Concierge router task: `spam`, `question`, `lead`, and `escalate`.
+The DL model achieved the highest macro-F1, but the classical model was close
+enough in quality while being faster, simpler, cheaper, and easier to defend in
+a lean serving container.
+
+### Results
+
+| Model | Macro-F1 | Weighted-F1 | Avg latency | P95 latency | Cost |
+|---|---:|---:|---:|---:|---:|
+| Classical TF-IDF + Logistic Regression | 0.9432 | 0.9433 | 0.95 ms | 1.26 ms | $0 |
+| Small DL TF-IDF MLP exported to ONNX | 0.9627 | 0.9626 | 2.92 ms | 6.71 ms | $0 |
+| Groq zero-shot LLM baseline, Llama 3.3 70B Versatile | 0.7830 | 0.7810 | 1512.50 ms | 1512.50 ms | Provider-priced |
+
+### Per-class F1
+
+| Model | Spam | Question | Lead | Escalate |
+|---|---:|---:|---:|---:|
+| Classical TF-IDF + Logistic Regression | 0.9639 | 0.9136 | 0.9620 | 0.9333 |
+| Small DL TF-IDF MLP exported to ONNX | 0.9873 | 0.9268 | 0.9630 | 0.9737 |
+| Groq zero-shot LLM baseline | 1.0000 | 0.7636 | 0.5185 | 0.8500 |
+
+### Production choice
+
+The shipped production model is the classical TF-IDF + Logistic Regression
+classifier served from the lean `model-server` through `sklearn/joblib`.
+
+The DL/ONNX model wins by about 0.0195 macro-F1, but it is roughly 3x slower on
+average and adds extra serving complexity. For this router, the classical model
+already clears the committed macro-F1 gate, has very low latency, has no API
+cost, and is easier to operate under the project rule that no training framework
+such as PyTorch, TensorFlow, or transformers may be included in service
+containers.
+
+The hosted-API LLM baseline was useful as a comparison point, but it is not
+appropriate as the default router because it is much slower, has provider cost,
+and performs worse than both trained models on macro-F1. The LLM should remain
+reserved for the bounded agent path where tool reasoning is actually needed.
+
+### Deployment impact
+
+The router uses the classifier as a cheap first decision point:
+
+- `spam` is dropped before storage or agent use.
+- `question` goes to the RAG/agent answer path.
+- `lead` goes to the lead capture workflow when confidence is high.
+- `escalate` goes to human handoff when confidence is high.
+- low-confidence predictions fall back to the bounded agent.
+
+This keeps simple turns off the expensive agent path while preserving safety:
+uncertain messages fail open to the agent instead of forcing the wrong
+deterministic workflow.

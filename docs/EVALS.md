@@ -136,3 +136,167 @@ Deterministic routing eval that verifies `/chat` classifier integration without 
 - tenant_id override in message → ignored, still uses verified context
 
 **Latest result (2026-05-28):** 8/8 passed, 0 failures.
+
+---
+
+## Classifier Eval
+
+The classifier eval measures the Concierge router model on a held-out test set.
+The task is four-way visitor intent classification:
+
+- `spam`
+- `question`
+- `lead`
+- `escalate`
+
+The dataset combines public labeled text-classification data from SMS Spam
+Collection for spam examples and CLINC150 / `clinc_oos` examples collapsed into
+the Concierge router labels. The processed dataset hash is recorded in the
+model card.
+
+### Command
+
+```bash
+cd backend
+uv run python ../ci/classifier/run_classifier_eval.py
+```
+
+### Latest result
+
+| Model | Macro-F1 | Weighted-F1 | Avg latency ms | P95 latency ms | Gate result |
+|---|---:|---:|---:|---:|---|
+| Classical TF-IDF + Logistic Regression | 0.9432 | 0.9433 | 0.95 | 1.26 | Pass |
+| Small DL TF-IDF MLP exported to ONNX | 0.9627 | 0.9626 | 2.92 | 6.71 | Pass |
+| Groq zero-shot LLM baseline | 0.7830 | 0.7810 | 1512.50 | 1512.50 | Comparison only |
+
+### Per-class F1
+
+| Model | Spam | Question | Lead | Escalate |
+|---|---:|---:|---:|---:|
+| Classical TF-IDF + Logistic Regression | 0.9639 | 0.9136 | 0.9620 | 0.9333 |
+| Small DL TF-IDF MLP exported to ONNX | 0.9873 | 0.9268 | 0.9630 | 0.9737 |
+| Groq zero-shot LLM baseline | 1.0000 | 0.7636 | 0.5185 | 0.8500 |
+
+### Gate
+
+The committed classifier gate is:
+
+```yaml
+classifier:
+  macro_f1_min: 0.8932
+  p95_latency_ms_max: 100.0
+```
+
+The shipped classical model passes both gates:
+
+- macro-F1: `0.9432 >= 0.8932`
+- p95 latency: `1.26 ms <= 100 ms`
+
+The DL model is kept as a required comparison baseline and exported ONNX
+artifact, but it is not the shipped production model because the classical model
+is close in macro-F1, faster, simpler, and easier to serve lean.
+
+---
+
+## Agent Tool-Selection Eval
+
+The agent golden eval verifies the classifier-driven router and tool-selection
+behavior without relying on hosted LLM calls, Redis, or the live model-server.
+
+### Command
+
+```bash
+cd backend
+uv run python ../ci/agent/run_agent_golden.py
+```
+
+### Latest result
+
+| Eval | Examples | Passed | Failed | Accuracy |
+|---|---:|---:|---:|---:|
+| Agent golden tool-selection | 8 | 8 | 0 | 1.00 |
+
+### Covered cases
+
+The golden set covers:
+
+- spam routed to refusal/drop behavior
+- lead routed to lead capture response
+- explicit human-support request routed to escalation
+- question routed to the agent/RAG path
+- low-confidence classifier output falling back to the agent
+- classifier unavailable falling back to the agent
+- classifier exception falling back to the agent
+- tenant-id override attempt ignored in favor of verified tenant context
+
+### Threshold rationale
+
+The committed threshold is intentionally low for now:
+
+```yaml
+agent:
+  tool_selection_accuracy_min: 0.30
+```
+
+This is kept at `0.30` because the current golden set is still small and
+deterministic. It prevents the gate from being disabled, while leaving room to
+tighten the value after the team expands the golden set beyond the first 8
+examples. The latest result is already above the threshold, so the next
+recommended step is to increase the threshold once more examples are added.
+
+---
+
+## Red-Team and Redaction Eval
+
+The red-team eval is a deterministic CI gate for prompt injection,
+jailbreak-style messages, cross-tenant extraction attempts, safe messages, and
+redaction behavior.
+
+### Command
+
+```bash
+python ci/redteam/run_redteam.py
+```
+
+### Latest result
+
+| Eval | Probe count | Required refusal rate | Actual refusal rate | Failures | Gate result |
+|---|---:|---:|---:|---:|---|
+| Red-team guardrails | 9 | 1.00 | 1.00 | 0 | Pass |
+
+### Covered cases
+
+The probe set covers:
+
+- prompt injection asking for the system prompt
+- prompt injection asking for hidden developer messages
+- jailbreak / DAN-style instruction override
+- cross-tenant requests for another tenant's leads
+- cross-tenant requests for another tenant's conversations
+- cross-tenant requests for competitor customer messages
+- safe business questions that should be allowed
+- lead/pricing intent that should be allowed
+- redaction of an email address and fake API key before safe text is returned
+
+The redaction probe confirms that `visitor@example.com` and
+`sk-test1234567890` do not remain in the safe text. They are replaced with
+`[REDACTED_EMAIL]` and `[REDACTED_SECRET]`.
+
+---
+
+## Overall Eval Gate Summary
+
+| Gate | Threshold | Latest result | Status |
+|---|---|---|---|
+| Classifier macro-F1 | `>= 0.8932` | `0.9432` shipped classical model | Pass |
+| Classifier p95 latency | `<= 100 ms` | `1.26 ms` shipped classical model | Pass |
+| Agent tool-selection accuracy | `>= 0.30` | `1.00` | Pass |
+| RAG retrieval hit@5 | `>= 0.70` | `1.00` for latest Hybrid + Reranker | Pass |
+| RAG faithfulness | `>= 0.80` | `0.9832` for latest Hybrid + Reranker | Pass |
+| RAG answer relevancy | `>= 0.80` | `0.8880` for latest Hybrid + Reranker | Pass |
+| RAG cross-tenant leaks | `0` | `0` | Pass |
+| Red-team refusal rate | `1.00` | `1.00` | Pass |
+
+The current eval state is acceptable for submission because the classifier,
+agent golden set, RAG golden set, red-team probes, and redaction checks are all
+represented as runnable CI gates with committed thresholds.
