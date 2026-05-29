@@ -97,7 +97,55 @@ de-duplication key without requiring IP tracking.
 
 ---
 
-## 4. Caching Decisions
+## 4. Conversation Surface
+
+Visitor chat runs through a bounded LangGraph agent loop behind `/chat`. The
+agent can choose `rag_search`, `capture_lead`, and `escalate`, but all
+tenant-scoped inputs are injected by the backend from verified request context.
+The LLM never receives `tenant_id` as a tool argument and cannot override it by
+prompting.
+
+The system prompt is versioned in `backend/app/prompts/v1/system.md` rather than
+embedded in route code. This keeps the isolation contract reviewable and lets us
+change prompt behavior without hiding it inside Python control flow.
+
+The conversation path is intentionally ordered:
+
+1. verify widget token and load tenant context
+2. load tenant record server-side
+3. enforce allowed `Origin`
+4. redact user message
+5. run input guardrails
+6. load Redis history
+7. run classifier routing
+8. run agent/RAG path if needed
+9. run output guardrails
+10. save final redacted/guarded turn to memory
+
+This order makes the trust boundary explicit: tenant identity and storage scope
+are enforced before the LLM is involved.
+
+---
+
+## 5. Guardrails and Redaction
+
+Guardrails are implemented as a separate sidecar service plus deterministic
+backend placement. The backend sends redacted input to the sidecar before
+classifier or agent execution, and it checks final output before returning or
+storing a response.
+
+Guardrails are defense-in-depth, not the primary isolation boundary. Cross-tenant
+protection still depends on verified tenant context, repository filters, RLS,
+and tenant-scoped storage. If the sidecar is unavailable, the backend logs the
+failure and continues rather than pretending guardrails are equivalent to auth.
+
+Service-to-service auth uses a shared guardrails token. The sidecar also runs
+NeMo checks against sanitized text instead of raw input, so secrets or PII that
+were already redacted are not forwarded to the secondary LLM path.
+
+---
+
+## 6. Caching Decisions
 
 | What | Where | Lifetime |
 |---|---|---|
@@ -120,7 +168,7 @@ restart to take effect, which is the expected operational path.
 
 ---
 
-## 5. Cost Attribution
+## 7. Cost Attribution
 
 Token usage is attributed per tenant at the service layer. Each LangGraph agent turn
 reports prompt tokens, completion tokens, and total tokens via the LLM response
@@ -132,7 +180,7 @@ token counts. No PII passes through the cost path.
 
 ---
 
-## 6. Scaling Story — 10 Tenants to 1,000
+## 8. Scaling Story — 10 Tenants to 1,000
 
 The current architecture handles tens of tenants with no code changes. The sections
 below identify which components become bottlenecks at 100 and 1,000 tenants and what
