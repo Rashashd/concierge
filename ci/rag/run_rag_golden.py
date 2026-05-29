@@ -197,6 +197,8 @@ def _build_app_settings(
     app_settings.azure_openai_embedding_deployment = llm_config.get(
         "azure_openai_embedding_deployment", ""
     )
+    if "azure_openai_api_version" in llm_config:
+        app_settings.azure_openai_api_version = llm_config["azure_openai_api_version"]
     app_settings.groq_api_key = SecretStr(llm_config.get("groq_api_key", ""))
     app_settings.reranker_provider = llm_config.get(
         "reranker_provider", app_settings.reranker_provider

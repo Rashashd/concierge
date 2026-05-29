@@ -239,16 +239,20 @@ jobs:
           AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
           AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
           AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_EMBEDDING_DEPLOYMENT }}
+          # Optional — defaults to 2024-05-01-preview if not set in repo secrets.
+          # Set AZURE_OPENAI_API_VERSION if your resource requires a specific version.
+          AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
         run: |
           BASE=http://localhost:8200/v1/secret/data/concierge
           H1="X-Vault-Token: ci-root-token"
           H2="Content-Type: application/json"
+          API_VERSION="${AZURE_OPENAI_API_VERSION:-2024-05-01-preview}"
 
           curl -sf -X PUT "$BASE/database" -H "$H1" -H "$H2" \
             -d '{"data":{"user":"ci_user","password":"ci_password","host":"localhost","port":"5432","name":"concierge_ci"}}'
 
           curl -sf -X PUT "$BASE/llm" -H "$H1" -H "$H2" \
-            -d "{\"data\":{\"provider\":\"azure\",\"azure_openai_api_key\":\"$AZURE_OPENAI_API_KEY\",\"azure_openai_endpoint\":\"$AZURE_OPENAI_ENDPOINT\",\"azure_openai_deployment\":\"$AZURE_OPENAI_DEPLOYMENT\",\"azure_openai_embedding_deployment\":\"$AZURE_OPENAI_EMBEDDING_DEPLOYMENT\",\"rag_retrieval_mode\":\"vector\"}}"
+            -d "{\"data\":{\"provider\":\"azure\",\"azure_openai_api_key\":\"$AZURE_OPENAI_API_KEY\",\"azure_openai_endpoint\":\"$AZURE_OPENAI_ENDPOINT\",\"azure_openai_deployment\":\"$AZURE_OPENAI_DEPLOYMENT\",\"azure_openai_embedding_deployment\":\"$AZURE_OPENAI_EMBEDDING_DEPLOYMENT\",\"azure_openai_api_version\":\"$API_VERSION\",\"rag_retrieval_mode\":\"vector\"}}"
 
           curl -sf -X PUT "$BASE/langchain" -H "$H1" -H "$H2" \
             -d '{"data":{"tracing_enabled":"false","api_key":"","project":"concierge"}}'
