@@ -60,7 +60,7 @@ async def chat(
         )
 
     safe_message = redactor.redact(request.message)
-    tenant_guardrail_config: dict = tenant.guardrail_config if tenant else {}
+    tenant_guardrail_config: dict[str, Any] = tenant.guardrail_config if tenant else {}
 
     try:
         input_check = await guardrails.check_input(

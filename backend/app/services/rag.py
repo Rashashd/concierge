@@ -103,6 +103,8 @@ class RAGService:
         chunks: Sequence[RetrievedChunk],
         top_k: int,
     ) -> Sequence[RetrievedChunk]:
+        if self._reranker is None:
+            return chunks[:top_k]
         candidates = [
             RerankCandidate(
                 index=i,

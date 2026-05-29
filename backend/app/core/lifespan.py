@@ -138,7 +138,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Redis
     redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
-    await redis_client.ping()
+    await redis_client.ping()  # type: ignore[misc]
     app.state.redis = redis_client
     logger.info("redis.connected")
 

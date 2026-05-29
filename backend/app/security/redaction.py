@@ -8,7 +8,7 @@ from presidio_anonymizer.entities import OperatorConfig
 class Redactor:
     def __init__(self) -> None:
         self._analyzer = AnalyzerEngine()
-        self._anonymizer = AnonymizerEngine()
+        self._anonymizer = AnonymizerEngine()  # type: ignore[no-untyped-call]
 
     def redact(self, text: str) -> str:
         """Replace detected PII with [REDACTED_<TYPE>] tokens.
@@ -26,7 +26,7 @@ class Redactor:
         }
         return self._anonymizer.anonymize(
             text=text,
-            analyzer_results=results,
+            analyzer_results=results,  # type: ignore[arg-type]
             operators=operators,
         ).text
 

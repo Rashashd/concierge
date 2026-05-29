@@ -51,4 +51,4 @@ async def delete_by_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> int:
     result = await session.execute(
         delete(WidgetConfig).where(WidgetConfig.tenant_id == tenant_id)
     )
-    return result.rowcount
+    return result.rowcount  # type: ignore[attr-defined, no-any-return]

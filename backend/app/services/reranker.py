@@ -64,7 +64,7 @@ class Reranker:
 class LLMReranker(Reranker):
     """Reranker that uses an LLM with JSON-mode scoring."""
 
-    def __init__(self, llm: object) -> None:
+    def __init__(self, llm: Any) -> None:
         self._llm = llm
 
     async def rerank(
