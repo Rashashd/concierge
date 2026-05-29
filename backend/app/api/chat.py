@@ -47,9 +47,7 @@ async def chat(
     reranker: Annotated[Reranker, Depends(get_reranker)],
     redactor: Annotated[Redactor, Depends(get_redactor)],
     settings: Annotated[Settings, Depends(get_settings)],
-    classifier: Annotated[
-        ClassifierClient | None, Depends(get_classifier_client)
-    ],
+    classifier: Annotated[ClassifierClient | None, Depends(get_classifier_client)],
     guardrails: Annotated[GuardrailsClient, Depends(get_guardrails_client)],
 ) -> ChatResponse:
     tenant = await tenant_repo.get_by_id(session, tenant_context.tenant_id)

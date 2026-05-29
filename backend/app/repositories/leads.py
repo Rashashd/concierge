@@ -75,7 +75,10 @@ async def count_recent_by_session(
     session_id: str,
     window_seconds: int = 3600,
 ) -> int:
-    """Count lead writes for a session_id within the rolling window. Used for rate limiting."""
+    """Count lead writes for a session_id within the rolling window.
+
+    Used for rate limiting.
+    """
     since = datetime.now(UTC) - timedelta(seconds=window_seconds)
     result = await session.execute(
         select(func.count()).where(

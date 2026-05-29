@@ -19,7 +19,9 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "cost_records",
-        sa.Column("id", sa.UUID(), nullable=False, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id", sa.UUID(), nullable=False, server_default=sa.text("gen_random_uuid()")
+        ),
         sa.Column("tenant_id", sa.UUID(), nullable=False),
         sa.Column("model", sa.String(100), nullable=False),
         sa.Column("prompt_tokens", sa.Integer(), nullable=False),

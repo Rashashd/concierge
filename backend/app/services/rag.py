@@ -58,9 +58,7 @@ class RAGService:
         try:
             embedding = await self.embed_query(query)
             candidate_count = (
-                _rerank_candidate_count(top_k)
-                if self._reranker is not None
-                else top_k
+                _rerank_candidate_count(top_k) if self._reranker is not None else top_k
             )
             chunks = await self._chunk_retriever(
                 tenant_id, query, embedding, candidate_count
@@ -114,9 +112,7 @@ class RAGService:
             for i, chunk in enumerate(chunks)
         ]
         try:
-            decisions = await self._reranker.rerank(
-                query=query, candidates=candidates
-            )
+            decisions = await self._reranker.rerank(query=query, candidates=candidates)
         except Exception as exc:
             logger.warning(
                 "rag.rerank_failed",

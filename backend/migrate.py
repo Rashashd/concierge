@@ -1,4 +1,5 @@
 """Migrate-and-start: read DB URL from Vault, run Alembic, exec uvicorn."""
+
 import os
 import sys
 
@@ -14,7 +15,7 @@ vault = create_vault_client(
     token=os.environ["VAULT_TOKEN"],
 )
 
-# alembic/env.py reads DATABASE_URL from the environment and converts +asyncpg → +psycopg2
+# alembic/env.py reads DATABASE_URL from env and converts +asyncpg → +psycopg2
 os.environ["DATABASE_URL"] = vault.get_database_url()
 
 cfg = Config("/app/alembic.ini")
