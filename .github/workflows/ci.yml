@@ -184,8 +184,6 @@ jobs:
       - name: Install guardrails deps
         run: uv sync --frozen
         working-directory: guardrails
-      - name: Download spaCy model (required by presidio/PII redaction)
-        run: guardrails/.venv/bin/python -m spacy download en_core_web_sm
       - name: Run redteam eval
         env:
           NEMO_ENABLED: "false"
