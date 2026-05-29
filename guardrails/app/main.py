@@ -84,9 +84,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 os.environ["OPENAI_API_KEY"] = openai_key
                 logger.info("guardrails.vault_key_loaded")
         except Exception as exc:
-            logger.warning(
-                "guardrails.vault_key_failed", error_type=type(exc).__name__
-            )
+            logger.warning("guardrails.vault_key_failed", error_type=type(exc).__name__)
 
     if settings.nemo_enabled:
         from nemoguardrails import LLMRails, RailsConfig
