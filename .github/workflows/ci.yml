@@ -187,12 +187,35 @@ jobs:
           NEMO_ENABLED: "false"
         run: guardrails/.venv/bin/python ci/redteam/run_redteam.py
 
-  # ── Eval: RAG golden set (needs OPENAI_API_KEY + live DB) ─────────────────
+  # ── Eval: RAG golden set (needs Azure OpenAI + live DB) ──────────────────
+
+  # secrets context is not available in job-level if conditions — use a prep
+  # job that checks at step level and exposes the result as an output.
+  # Required GitHub secrets (ask Hadi to add):
+  #   AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT,
+  #   AZURE_OPENAI_DEPLOYMENT, AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+  check-azure-key:
+    name: "Check Azure OpenAI key availability"
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - id: check
+        env:
+          KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+        run: |
+          if [ -n "$KEY" ] && [ -n "$ENDPOINT" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
 
   eval-rag-golden:
-    name: "Eval — RAG golden set (requires OPENAI_API_KEY secret)"
+    name: "Eval — RAG golden set (requires Azure OpenAI secrets)"
     runs-on: ubuntu-latest
-    if: ${{ secrets.OPENAI_API_KEY != '' }}
+    needs: check-azure-key
+    if: needs.check-azure-key.outputs.available == 'true'
     env:
       POSTGRES_USER: ci_user
       POSTGRES_PASSWORD: ci_password
@@ -208,9 +231,12 @@ jobs:
       - name: Start postgres and vault
         run: docker compose up -d --wait postgres vault
 
-      - name: Seed Vault KV v2 (real LLM key)
+      - name: Seed Vault KV v2 (Azure OpenAI keys)
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+          AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_EMBEDDING_DEPLOYMENT }}
         run: |
           BASE=http://localhost:8200/v1/secret/data/concierge
           H1="X-Vault-Token: ci-root-token"
@@ -219,9 +245,8 @@ jobs:
           curl -sf -X PUT "$BASE/database" -H "$H1" -H "$H2" \
             -d '{"data":{"user":"ci_user","password":"ci_password","host":"localhost","port":"5432","name":"concierge_ci"}}'
 
-          # Inject real key so embeddings + LLM calls succeed during eval
           curl -sf -X PUT "$BASE/llm" -H "$H1" -H "$H2" \
-            -d "{\"data\":{\"provider\":\"openai\",\"openai_api_key\":\"$OPENAI_API_KEY\",\"openai_model\":\"gpt-4o-mini\",\"openai_embedding_model\":\"text-embedding-3-small\",\"rag_retrieval_mode\":\"vector\"}}"
+            -d "{\"data\":{\"provider\":\"azure\",\"azure_openai_api_key\":\"$AZURE_OPENAI_API_KEY\",\"azure_openai_endpoint\":\"$AZURE_OPENAI_ENDPOINT\",\"azure_openai_deployment\":\"$AZURE_OPENAI_DEPLOYMENT\",\"azure_openai_embedding_deployment\":\"$AZURE_OPENAI_EMBEDDING_DEPLOYMENT\",\"rag_retrieval_mode\":\"vector\"}}"
 
           curl -sf -X PUT "$BASE/langchain" -H "$H1" -H "$H2" \
             -d '{"data":{"tracing_enabled":"false","api_key":"","project":"concierge"}}'
