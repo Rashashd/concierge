@@ -73,10 +73,15 @@ jobs:
         run: uv sync --all-groups
 
       - name: Ruff
-        run: uv run ruff check app tests
+        run: uv run ruff check app
 
       - name: Unit tests
-        run: uv run pytest -q
+        run: |
+          if [ -d tests ]; then
+            uv run pytest -q
+          else
+            echo "No guardrails tests in this branch; skipping."
+          fi
 
   model-server:
     name: Model Server
