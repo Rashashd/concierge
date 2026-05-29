@@ -77,7 +77,9 @@ jobs:
       MINIO_ROOT_USER: ci_minio
       MINIO_ROOT_PASSWORD: ci_minio_s3cret
       VAULT_TOKEN: ci-root-token
-      VAULT_ADDR: http://localhost:8200
+      # VAULT_ADDR is intentionally NOT set at job level — docker compose must use
+      # the http://vault:8200 default from docker-compose.yml so the backend
+      # container resolves vault via the Docker network, not localhost.
     steps:
       - uses: actions/checkout@v4
 
@@ -88,6 +90,8 @@ jobs:
       # We seed all paths the backend reads at lifespan startup using fake creds.
       # The LLM key is fake; /healthz does not call the LLM so this is fine.
       - name: Seed Vault KV v2
+        env:
+          VAULT_ADDR: http://localhost:8200
         run: |
           BASE=http://localhost:8200/v1/secret/data/concierge
           H1="X-Vault-Token: ci-root-token"
