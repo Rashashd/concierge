@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 SESSION_KEY_PREFIX = "session"
-DEFAULT_SESSION_TTL_SECONDS = 24 * 60 * 60
+DEFAULT_SESSION_TTL_SECONDS = 2 * 60 * 60
 DEFAULT_MAX_HISTORY_MESSAGES = 200
 
 

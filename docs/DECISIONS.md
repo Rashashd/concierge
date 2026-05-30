@@ -201,3 +201,25 @@ The router uses the classifier as a cheap first decision point:
 This keeps simple turns off the expensive agent path while preserving safety:
 uncertain messages fail open to the agent instead of forcing the wrong
 deterministic workflow.
+
+## Vault for Secret Management
+
+Decision: store all runtime secrets in HashiCorp Vault KV v2 and read them once at backend startup rather than injecting them as environment variables or baking them into images.
+
+Reason: environment variables are visible in process lists, container inspect output, and CI logs. Vault KV v2 gives a single audit trail for all secret reads and writes, allows secret rotation without image rebuilds or redeployment, and keeps the dev and CI environments consistent — both use the same Vault token + path pattern. In dev mode, Vault starts in a single-container setup with a root token; in production this would be replaced with Vault HA (Raft) without application code changes.
+
+The tradeoff is that every backend restart requires Vault to be healthy. This is acceptable because Vault dev mode starts in under 2 seconds and the backend's `require-to-boot` pattern (crashing on bad secrets) is preferable to running silently with missing config.
+
+## Streamlit for the Admin UI
+
+Decision: build the admin UI in Streamlit rather than a dedicated frontend framework (React, Vue) or a FastAPI admin plugin.
+
+Reason: the admin UI is a low-concurrency tool used by platform operators and tenant admins — not a visitor-facing product. Streamlit lets us build a fully functional multi-page admin interface in pure Python, sharing the same `httpx`-based API client pattern as the backend tests. There is no separate build pipeline, no TypeScript, and no client-side state management to maintain.
+
+The tradeoff is that Streamlit reruns the full Python script on every interaction, which causes a slight flicker on state-heavy pages. This is acceptable for an admin tool. If the UI needed real-time updates or sub-100 ms interactions, a React frontend would be the right call.
+
+## CI Job Structure
+
+Decision: split CI into separate jobs for lint, unit tests, integration tests, stack smoke, evals, and secret scan rather than a single `test` job.
+
+Reason: a single job means the full Docker stack has to spin up before lint can run, which wastes 2–3 minutes on every trivial formatting fix. With separate jobs, lint and unit tests give feedback in under 60 seconds without any infrastructure. The stack-smoke job only runs after lint passes. The RAG eval job is gated behind an Azure secret availability check so it skips gracefully on forks. This structure also makes it possible to re-run only the failing job without re-running the full suite.

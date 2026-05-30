@@ -3,6 +3,10 @@
 seed.sh
 seed.example.sh
 
+# Local dev scripts (personal workflow — not committed)
+scripts/start.ps1
+scripts/seed_cms.py
+
 # AI assistant config (personal/team-specific)
 .claude/
 CLAUDE.md
