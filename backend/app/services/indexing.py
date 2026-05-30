@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infra.minio import MinioClient
 from app.repositories import chunks as chunk_repo
 from app.repositories import content as content_repo
+from app.services.chunking import chunk_markdown
 
 logger = structlog.get_logger(__name__)
 
@@ -20,21 +21,23 @@ async def _embed_item(
     content_id: UUID,
     title: str,
     body: str,
+    content_type: str,
 ) -> None:
     """Delete existing chunks for a content item then write fresh embeddings."""
     embed_fn = getattr(embeddings, "aembed_documents", None)
     if embed_fn is None:
         logger.warning("indexing.embeddings_unavailable", content_id=str(content_id))
         return
-    text = f"{title}\n\n{body}"
-    vectors: list[list[float]] = await embed_fn([text])
+    texts = chunk_markdown(f"{title}\n\n{body}")
+    vectors: list[list[float]] = await embed_fn(texts)
     await chunk_repo.delete_by_content_item(session, tenant_id, content_id)
     await chunk_repo.create_bulk(
         session,
         tenant_id=tenant_id,
         content_item_id=content_id,
-        texts=[text],
+        texts=texts,
         embeddings=vectors,
+        metadatas=[{"content_type": content_type} for _ in texts],
     )
     logger.info("indexing.item_embedded", content_id=str(content_id))
 
@@ -61,7 +64,9 @@ async def index_content(
             "content_type": content_type,
         },
     )
-    await _embed_item(session, embeddings, tenant_id, content_id, title, body)
+    await _embed_item(
+        session, embeddings, tenant_id, content_id, title, body, content_type
+    )
 
 
 async def reindex_tenant(
@@ -73,6 +78,12 @@ async def reindex_tenant(
     items = await content_repo.list_by_tenant(session, tenant_id)
     for item in items:
         await _embed_item(
-            session, embeddings, tenant_id, item.id, item.title, item.body
+            session,
+            embeddings,
+            tenant_id,
+            item.id,
+            item.title,
+            item.body,
+            item.content_type,
         )
     logger.info("indexing.tenant_reindexed", tenant_id=str(tenant_id), count=len(items))
