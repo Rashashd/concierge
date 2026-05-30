@@ -15,7 +15,7 @@ COPY pyproject.toml ./
 RUN pip install --no-cache-dir uv \
     && uv pip install --system .
 
-COPY app.py ./app.py
+COPY app.py utils.py ./
 
 EXPOSE 8501
 
