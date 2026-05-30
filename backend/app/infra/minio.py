@@ -6,6 +6,7 @@ Erasure deletes the entire prefix.
 
 import asyncio
 import json
+from typing import Any
 from uuid import UUID
 
 import boto3
@@ -39,7 +40,7 @@ class MinioClient:
         self,
         tenant_id: UUID,
         content_id: UUID,
-        payload: dict,
+        payload: dict[str, Any],
     ) -> None:
         """Write a content item blob under tenants/{tenant_id}/content/{id}.json."""
         key = self._content_key(tenant_id, content_id)

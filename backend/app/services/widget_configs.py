@@ -35,6 +35,7 @@ async def upsert_widget_config(
             config.greeting = greeting
             config.theme_color = theme_color
             config.enabled_tools = enabled_tools
+    assert config is not None
     logger.info("widget.config_upserted", tenant_id=str(tenant_id))
     return config
 

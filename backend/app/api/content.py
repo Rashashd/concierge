@@ -141,8 +141,8 @@ async def delete_content(
     # Chunks must be deleted before the content item (no FK cascade in the model).
     await chunk_repo.delete_by_content_item(
         session,
-        user.tenant_id,
-        content_id,  # type: ignore[arg-type]
+        user.tenant_id,  # type: ignore[arg-type]
+        content_id,
     )
     deleted = await content_repo.delete_by_id(
         session=session,
