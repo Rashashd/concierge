@@ -27,12 +27,13 @@ from rag_eval_metrics import (
     retrieval_hit_at_k_by_fixture,
 )
 from ragas import evaluate
-from ragas.metrics import (
+from ragas.metrics import (  # noqa: F401 -- collections paths differ by version
     Faithfulness,
     LLMContextPrecisionWithReference,
     LLMContextRecall,
     ResponseRelevancy,
 )
+from ragas.run_config import RunConfig
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -44,13 +45,13 @@ from app.repositories import chunks as chunk_repo
 from app.repositories import content as content_repo
 from app.schemas import RAGSearchOutput
 from app.services.rag import build_pgvector_rag_service
+from app.services.chunking import chunk_markdown
 from app.services.reranker import Reranker, build_reranker
 
 GOLDEN_PATH = Path(__file__).with_name("rag_golden.json")
 DISTRACTOR_PATH = Path(__file__).with_name("rag_eval_distractors.json")
 FIXTURE_ROOT = Path(__file__).with_name("rag_eval_docs")
 TEMP_CONTENT_TYPE = "rag_eval_temp_ci"
-DEFAULT_CHUNK_MAX_CHARS = 300
 DEFAULT_RAGAS_TIMEOUT_SECONDS = 600
 
 
@@ -268,59 +269,6 @@ def _load_fixture_markdown(fixture: GoldenExample | DistractorFixture) -> str:
     return fixture_path.read_text(encoding="utf-8").strip()
 
 
-def chunk_markdown(
-    markdown: str,
-    *,
-    max_chars: int = DEFAULT_CHUNK_MAX_CHARS,
-) -> list[str]:
-    sections = [
-        section.strip() for section in markdown.split("\n\n") if section.strip()
-    ]
-    chunks: list[str] = []
-    current = ""
-
-    for section in sections:
-        section_chunks = _split_oversized_section(section, max_chars=max_chars)
-        for piece in section_chunks:
-            if not current:
-                current = piece
-                continue
-
-            candidate = f"{current}\n\n{piece}"
-            if len(candidate) <= max_chars:
-                current = candidate
-                continue
-
-            chunks.append(current)
-            current = piece
-
-    if current:
-        chunks.append(current)
-
-    return [chunk for chunk in chunks if chunk.strip()]
-
-
-def _split_oversized_section(section: str, *, max_chars: int) -> list[str]:
-    if len(section) <= max_chars:
-        return [section]
-
-    words = section.split()
-    parts: list[str] = []
-    current_words: list[str] = []
-    current_length = 0
-    for word in words:
-        word_length = len(word) + (1 if current_words else 0)
-        if current_words and current_length + word_length > max_chars:
-            parts.append(" ".join(current_words))
-            current_words = [word]
-            current_length = len(word)
-            continue
-        current_words.append(word)
-        current_length += word_length
-
-    if current_words:
-        parts.append(" ".join(current_words))
-    return parts
 
 
 async def _embed_documents(embeddings: Any, texts: list[str]) -> list[list[float]]:
@@ -631,6 +579,8 @@ def _evaluate_ragas_sync(
     # from inside RAGAS's own asyncio.run() loop, which can trigger a different
     # HTTP code path than our preflight check.  We detect NaN below and raise a
     # targeted error so the CI log is actionable.
+    # max_workers=4 prevents Azure rate-limit cascades; default (16) spawns
+    # 60+ concurrent jobs across 20 examples × 4 metrics which causes timeouts.
     evaluation = evaluate(
         dataset,
         metrics=[
@@ -643,6 +593,7 @@ def _evaluate_ragas_sync(
         embeddings=embeddings,
         raise_exceptions=False,
         show_progress=False,
+        run_config=RunConfig(max_workers=4, timeout=120),
     )
     frame = evaluation.to_pandas()
 
