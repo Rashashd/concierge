@@ -1,5 +1,10 @@
-FROM node:20-alpine
+FROM node:20-alpine AS build
 WORKDIR /app
-RUN printf '{"name":"widget","version":"0.1.0","scripts":{"start":"node server.js"}}' > package.json
-RUN printf 'require("http").createServer((_,r)=>{r.end(JSON.stringify({status:"ok"}))}).listen(3000);\n' > server.js
-CMD ["node", "server.js"]
+COPY package.json package-lock.json* ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
