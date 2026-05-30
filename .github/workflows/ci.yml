@@ -273,6 +273,11 @@ jobs:
           VAULT_ADDR: http://localhost:8200
           VAULT_TOKEN: ci-root-token
           RAG_EVAL_DATABASE_URL: postgresql+asyncpg://ci_user:ci_password@localhost:5432/concierge_ci
+          RUN_RAGAS_METRICS: "false"
+          RAGAS_SAMPLE_SIZE: "3"
+          RAGAS_MAX_WORKERS: "3"
+          RAGAS_MAX_RETRIES: "0"
+          RAGAS_JOB_TIMEOUT_SECONDS: "45"
         run: backend/.venv/bin/python ci/rag/run_rag_golden.py
 
       - name: Collect logs on failure

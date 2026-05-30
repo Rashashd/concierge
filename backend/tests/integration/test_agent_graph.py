@@ -4,7 +4,7 @@ import pytest
 from langchain_core.messages import AIMessage, BaseMessage
 
 from app.schemas import TenantContext
-from app.services.agent.graph import run_agent_turn
+from app.services.agent.graph import SYSTEM_PROMPT, run_agent_turn
 from app.services.memory import MemoryMessage
 
 
@@ -72,6 +72,9 @@ async def test_agent_includes_memory_before_current_user_message() -> None:
     )
 
     contents = [str(message.content) for message in model.received_messages]
-    assert contents[1:4] == ["Earlier question", "Earlier answer", "Current question"]
-    assert "You are Concierge" in contents[0]
-    assert "tenant" in contents[0]
+    assert contents[:4] == [
+        SYSTEM_PROMPT,
+        "Earlier question",
+        "Earlier answer",
+        "Current question",
+    ]

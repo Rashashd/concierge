@@ -156,6 +156,40 @@ the pipeline.
 Raw user messages are not logged. PII redaction applies before any data leaves
 the service.
 
+## Tenant Manager read boundary
+
+The Tenant Manager role can provision, suspend, and erase tenants. It cannot read any tenant's content, conversations, or leads. This boundary is enforced at the route layer, not just by RLS.
+
+Every route that returns content, chat history, or leads is protected by `require_tenant_admin` (not `require_tenant_manager`). `require_tenant_admin` also invokes `get_admin_tenant_session`, which sets the `app.tenant_id` session variable before any query runs. A `tenant_manager` token passes `require_tenant_manager` but fails `require_tenant_admin`, so it cannot reach those routes at all.
+
+The one code change that quietly moves this line: adding a new endpoint that uses `require_tenant_manager` combined with a raw `get_session` dependency instead of `get_admin_tenant_session`. That combination gives the manager a DB session with no `app.tenant_id` set — RLS blocks tenant-scoped tables, but any table without RLS (e.g. `audit_logs`) would be accessible. The safe pattern is: if an endpoint returns tenant data, it must use `get_admin_tenant_session`.
+
+## Classifier fail direction
+
+The classifier confidence threshold is intentionally set to fail open toward the full RAG agent. A low-confidence prediction routes to the agent rather than forcing a cheaper path. The asymmetry of the two failure modes drives this choice: a mis-routed question that gets dropped or answered cheaply loses the customer; a mis-routed turn that reaches the agent costs a few extra tokens. The expensive path is the safe path.
+
+## Injection test stability
+
+The red-team CI gate (`ci/redteam/run_redteam.py`) runs on every push and requires a 100% refusal rate — any failure blocks the merge. The specific refactor that could silently reopen an injection hole is reordering the `/chat` pipeline: moving PII redaction to after guardrails, or removing it from the handler entirely. If redaction is removed, the raw user message reaches the LLM. If redaction moves after guardrails, the guardrail check sees unredacted input, but the LLM still gets the redacted version — creating a gap between what was checked and what was acted on. The red-team probe tests the full live pipeline end-to-end, so any reorder that lets a flagged pattern through would fail the gate.
+
+## Tenant data erasure — full inventory
+
+`POST /tenants/{id}/erase` deletes data in this order:
+
+1. Redis session keys matching `session:{tenant_id}:*`
+2. MinIO objects under `tenants/{tenant_id}/`
+3. pgvector chunks (`chunks` table, filtered by `tenant_id`)
+4. Content items (`content_items` table)
+5. Widget configs (`widget_configs` table)
+6. Leads (`leads` table)
+7. Audit log entry written to record the erasure
+
+**Not deleted by erasure:**
+- `cost_records` — intentionally preserved for billing. No message content is stored there, only token counts and model names.
+- `users` — the tenant's admin account is a platform-level record; deletion is a separate operation.
+- LangSmith traces — `LANGCHAIN_TRACING_V2` is `false` by default in `.env` and in the Vault `langchain` secret. If tracing is enabled, traces live on LangSmith's servers and are outside the erasure path. Operators must disable tracing or delete traces via the LangSmith API before claiming full erasure.
+- structlog output — logs are ephemeral (stdout/stderr) and contain no raw message content (PII redaction runs before anything is logged). No log persistence is wired up in the default configuration.
+
 ## Intentionally not solved yet
 
 - **Empty `allowed_origins=[]` is a temporary allow-all.** Every tenant will

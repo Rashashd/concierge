@@ -46,12 +46,22 @@ def _tenant(name: str = "Acme", slug: str = "acme") -> Tenant:
 async def test_create_tenant_returns_created_tenant(monkeypatch) -> None:
     t = _tenant()
     monkeypatch.setattr(
-        "app.api.tenants.tenant_repo.get_by_slug", AsyncMock(return_value=None)
+        "app.api.tenants.tenant_repo.get_by_slug",
+        AsyncMock(return_value=None),
     )
-    monkeypatch.setattr("app.api.tenants.tenant_repo.create", AsyncMock(return_value=t))
+    monkeypatch.setattr(
+        "app.api.tenants.tenant_repo.create",
+        AsyncMock(return_value=t),
+    )
+    monkeypatch.setattr(
+        "app.api.tenants.audit_repo.create",
+        AsyncMock(return_value=object()),
+    )
 
     result = await create_tenant(
-        TenantCreate(name="Acme", slug="acme"), _manager(), _mock_session()
+        TenantCreate(name="Acme", slug="acme"),
+        _manager(),
+        _mock_session(),
     )
 
     assert result.slug == "acme"
@@ -61,12 +71,15 @@ async def test_create_tenant_returns_created_tenant(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_create_tenant_raises_409_on_duplicate_slug(monkeypatch) -> None:
     monkeypatch.setattr(
-        "app.api.tenants.tenant_repo.get_by_slug", AsyncMock(return_value=_tenant())
+        "app.api.tenants.tenant_repo.get_by_slug",
+        AsyncMock(return_value=_tenant()),
     )
 
     with pytest.raises(HTTPException) as exc_info:
         await create_tenant(
-            TenantCreate(name="Acme", slug="acme"), _manager(), _mock_session()
+            TenantCreate(name="Acme", slug="acme"),
+            _manager(),
+            _mock_session(),
         )
 
     assert exc_info.value.status_code == 409
@@ -79,7 +92,8 @@ async def test_create_tenant_raises_409_on_duplicate_slug(monkeypatch) -> None:
 async def test_list_tenants_returns_all_tenants(monkeypatch) -> None:
     tenants = [_tenant("Alpha", "alpha"), _tenant("Beta", "beta")]
     monkeypatch.setattr(
-        "app.api.tenants.tenant_repo.list_all", AsyncMock(return_value=tenants)
+        "app.api.tenants.tenant_repo.list_all",
+        AsyncMock(return_value=tenants),
     )
 
     result = await list_tenants(_manager(), _mock_session())
@@ -92,7 +106,8 @@ async def test_list_tenants_returns_all_tenants(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_list_tenants_returns_empty_list(monkeypatch) -> None:
     monkeypatch.setattr(
-        "app.api.tenants.tenant_repo.list_all", AsyncMock(return_value=[])
+        "app.api.tenants.tenant_repo.list_all",
+        AsyncMock(return_value=[]),
     )
 
     result = await list_tenants(_manager(), _mock_session())
@@ -108,7 +123,8 @@ async def test_suspend_tenant_returns_suspended_tenant(monkeypatch) -> None:
     t = _tenant()
     t.is_active = False
     monkeypatch.setattr(
-        "app.api.tenants.tenant_repo.suspend", AsyncMock(return_value=t)
+        "app.api.tenants.tenant_repo.suspend",
+        AsyncMock(return_value=t),
     )
 
     result = await suspend_tenant(t.id, _manager(), _mock_session())
@@ -119,7 +135,8 @@ async def test_suspend_tenant_returns_suspended_tenant(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_suspend_tenant_raises_404_when_not_found(monkeypatch) -> None:
     monkeypatch.setattr(
-        "app.api.tenants.tenant_repo.suspend", AsyncMock(return_value=None)
+        "app.api.tenants.tenant_repo.suspend",
+        AsyncMock(return_value=None),
     )
 
     with pytest.raises(HTTPException) as exc_info:

@@ -198,7 +198,7 @@ Amazon S3 is a single environment variable change because `infra/minio.py` uses 
 S3-compatible API throughout. The `tenants/{tenant_id}/` prefix structure requires no
 migration.
 
-**Redis** — session data is tenant-scoped and short-lived (24-hour TTL). A single
+**Redis** — session data is tenant-scoped and short-lived (2-hour TTL). A single
 Redis node handles thousands of concurrent active sessions. Horizontal scaling via
 Redis Cluster adds capacity without application changes.
 
@@ -285,3 +285,21 @@ Mitigation path in order of effort:
 | Object storage | Local MinIO | MinIO distributed | Amazon S3 |
 | LLM | 1 deployment | 1–2 deployments | Multiple deployments + per-tenant rate limiting |
 | Vault | Dev mode | Vault HA (Raft) | Vault HA (Raft) |
+
+---
+
+## 9. Admin UI
+
+The Streamlit admin application is a thin API client — it holds no business logic and owns no data. Every action calls a backend endpoint and displays the result. Session state is limited to the JWT access token, the backend URL, and ephemeral UI state (current page selections, unsaved form values).
+
+This design means the admin UI inherits all backend security guarantees automatically. Tenant isolation, role enforcement, and audit logging happen in the backend regardless of what the UI sends. A broken or compromised UI cannot bypass the backend's `require_tenant_manager` or `require_tenant_admin` dependencies — the constraints live in one place.
+
+The UI is split into two role-scoped page groups. `tenant_manager` pages cover platform operations: tenant provisioning, suspension, erasure, audit log review, and cost monitoring. `tenant_admin` pages cover tenant-level operations: CMS content management, persona and guardrail config, lead review, and widget configuration. Page visibility is enforced client-side for convenience; the backend enforces the same roles on every API call.
+
+---
+
+## 10. Vault as Secret Store
+
+All runtime secrets (DB credentials, LLM API keys, MinIO keys, widget token secret, service-to-service tokens) are stored in HashiCorp Vault KV v2 under `secret/concierge/`. The backend reads them once at lifespan startup via `app/infra/vault.py` and caches them in `Settings` for the process lifetime.
+
+This means no secret ever appears in environment variables that could be printed in logs, no secret is embedded in Docker images, and rotating a secret only requires updating Vault and restarting the affected service — not redeploying with a new image or updated `.env`. The same Vault token works in dev mode locally and in the `stack-smoke` CI job, making the secret access path identical across environments.

@@ -196,7 +196,8 @@ async def test_erase_tenant_writes_audit_log(
 
     _patch_repos(monkeypatch)
     monkeypatch.setattr(
-        "app.services.erasure.audit_repo.create", capturing_audit_create
+        "app.services.erasure.audit_repo.create",
+        capturing_audit_create,
     )
     tenant_id = uuid4()
     actor_id = uuid4()

@@ -34,7 +34,9 @@ async def test_embed_item_skips_when_no_embed_fn(monkeypatch) -> None:
     )
     monkeypatch.setattr("app.services.indexing.chunk_repo.create_bulk", create_mock)
 
-    await _embed_item(_session(), _embeddings_no_fn(), uuid4(), uuid4(), "T", "B")
+    await _embed_item(
+        _session(), _embeddings_no_fn(), uuid4(), uuid4(), "T", "B", "faq"
+    )
 
     delete_mock.assert_not_called()
     create_mock.assert_not_called()
@@ -53,7 +55,7 @@ async def test_embed_item_deletes_old_chunks_then_creates_new(monkeypatch) -> No
     session = _session()
 
     await _embed_item(
-        session, _embeddings(vectors), tenant_id, content_id, "Title", "Body"
+        session, _embeddings(vectors), tenant_id, content_id, "Title", "Body", "faq"
     )
 
     delete_mock.assert_awaited_once_with(session, tenant_id, content_id)
@@ -79,7 +81,9 @@ async def test_embed_item_concatenates_title_and_body(monkeypatch) -> None:
     )
     monkeypatch.setattr("app.services.indexing.chunk_repo.create_bulk", AsyncMock())
 
-    await _embed_item(_session(), embeddings, uuid4(), uuid4(), "My Title", "My Body")
+    await _embed_item(
+        _session(), embeddings, uuid4(), uuid4(), "My Title", "My Body", "faq"
+    )
 
     assert captured == ["My Title\n\nMy Body"]
 
@@ -148,8 +152,16 @@ async def test_index_content_calls_embed_after_minio(monkeypatch) -> None:
 async def test_reindex_tenant_embeds_all_items(monkeypatch) -> None:
     tenant_id = uuid4()
     items = [
-        type("Item", (), {"id": uuid4(), "title": "T1", "body": "B1"})(),
-        type("Item", (), {"id": uuid4(), "title": "T2", "body": "B2"})(),
+        type(
+            "Item",
+            (),
+            {"id": uuid4(), "title": "T1", "body": "B1", "content_type": "faq"},
+        )(),
+        type(
+            "Item",
+            (),
+            {"id": uuid4(), "title": "T2", "body": "B2", "content_type": "faq"},
+        )(),
     ]
     monkeypatch.setattr(
         "app.services.indexing.content_repo.list_by_tenant",
@@ -157,7 +169,9 @@ async def test_reindex_tenant_embeds_all_items(monkeypatch) -> None:
     )
     embed_calls: list[tuple] = []
 
-    async def fake_embed_item(session, embeddings, t_id, c_id, title, body):
+    async def fake_embed_item(
+        session, embeddings, t_id, c_id, title, body, content_type
+    ):
         embed_calls.append((c_id, title))
 
     monkeypatch.setattr("app.services.indexing._embed_item", fake_embed_item)
