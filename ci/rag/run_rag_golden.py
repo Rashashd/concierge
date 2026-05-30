@@ -27,7 +27,7 @@ from rag_eval_metrics import (
     retrieval_hit_at_k_by_fixture,
 )
 from ragas import evaluate
-from ragas.metrics.collections import (
+from ragas.metrics import (  # noqa: F401 -- collections paths differ by version
     Faithfulness,
     LLMContextPrecisionWithReference,
     LLMContextRecall,
