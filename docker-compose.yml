@@ -70,19 +70,6 @@ services:
       timeout: 5s
       retries: 10
 
-  pgadmin:
-    image: dpage/pgadmin4:8
-    pull_policy: if_not_present
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@concierge.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   # Application services
 
   backend:
