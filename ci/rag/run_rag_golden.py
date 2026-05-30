@@ -27,12 +27,13 @@ from rag_eval_metrics import (
     retrieval_hit_at_k_by_fixture,
 )
 from ragas import evaluate
-from ragas.metrics import (
+from ragas.metrics.collections import (
     Faithfulness,
     LLMContextPrecisionWithReference,
     LLMContextRecall,
     ResponseRelevancy,
 )
+from ragas.run_config import RunConfig
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -631,6 +632,8 @@ def _evaluate_ragas_sync(
     # from inside RAGAS's own asyncio.run() loop, which can trigger a different
     # HTTP code path than our preflight check.  We detect NaN below and raise a
     # targeted error so the CI log is actionable.
+    # max_workers=4 prevents Azure rate-limit cascades; default (16) spawns
+    # 60+ concurrent jobs across 20 examples × 4 metrics which causes timeouts.
     evaluation = evaluate(
         dataset,
         metrics=[
@@ -643,6 +646,7 @@ def _evaluate_ragas_sync(
         embeddings=embeddings,
         raise_exceptions=False,
         show_progress=False,
+        run_config=RunConfig(max_workers=4, timeout=120),
     )
     frame = evaluation.to_pandas()
 
