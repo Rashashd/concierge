@@ -6,9 +6,12 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.append(str(REPO_ROOT / "ci" / "rag"))
 
 from run_rag_golden import (  # noqa: E402
+    EvalExampleResult,
     _fixture_path,
     _load_distractors,
     _load_examples,
+    _select_ragas_examples,
+    _skipped_ragas_scores,
     chunk_markdown,
 )
 
@@ -157,3 +160,64 @@ def test_distractor_manifest_valid() -> None:
     with distractor_path.open("r", encoding="utf-8") as f:
         raw = json.load(f)
     assert len(raw) >= 15
+
+
+def test_ragas_sample_prefers_multihop_and_covers_tenants() -> None:
+    results = [
+        _make_eval_result("alpha-hours", ["alpha-hours.md"]),
+        _make_eval_result("beta-shipping", ["beta-shipping.md"]),
+        _make_eval_result("gamma-support", ["gamma-support.md"]),
+        _make_eval_result("alpha-hours-cancel", ["alpha-hours.md", "alpha-cancel.md"]),
+        _make_eval_result(
+            "beta-shipping-returns", ["beta-shipping.md", "beta-returns.md"]
+        ),
+        _make_eval_result(
+            "gamma-onboarding-integrations",
+            ["gamma-onboarding.md", "gamma-integrations.md"],
+        ),
+    ]
+
+    sample = _select_ragas_examples(example_results=results, sample_size=3)
+    sample_ids = {result.example_id for result in sample}
+
+    assert len(sample) == 3
+    assert "alpha-hours-cancel" in sample_ids
+    assert "beta-shipping-returns" in sample_ids
+    assert "gamma-onboarding-integrations" in sample_ids
+    assert {sample_id.split("-", maxsplit=1)[0] for sample_id in sample_ids} == {
+        "alpha",
+        "beta",
+        "gamma",
+    }
+
+
+def test_skipped_ragas_scores_are_explicit() -> None:
+    scores = _skipped_ragas_scores()
+
+    assert scores["ragas_skipped"] is True
+    assert scores["faithfulness"] is None
+    assert scores["answer_relevancy"] is None
+    assert scores["context_precision"] is None
+    assert scores["context_recall"] is None
+
+
+def _make_eval_result(
+    example_id: str,
+    expected_fixture_paths: list[str],
+) -> EvalExampleResult:
+    return EvalExampleResult(
+        example_id=example_id,
+        question="question",
+        chunk_count=1,
+        retrieval_hit=True,
+        retrieval_hit_at_1=True,
+        expected_source_rank=1,
+        expected_doc_precision_at_5=1.0,
+        expected_doc_mrr_at_5=1.0,
+        answer_contains_expected=True,
+        cross_tenant_leak_count=0,
+        answer="answer",
+        retrieved_contexts=["context"],
+        reference_answer="reference",
+        expected_fixture_paths=expected_fixture_paths,
+    )

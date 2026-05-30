@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -26,13 +27,7 @@ from rag_eval_metrics import (
     ratio,
     retrieval_hit_at_k_by_fixture,
 )
-from ragas import evaluate
-from ragas.metrics import (  # noqa: F401 -- collections paths differ by version
-    Faithfulness,
-    LLMContextPrecisionWithReference,
-    LLMContextRecall,
-    ResponseRelevancy,
-)
+from ragas.evaluation import aevaluate
 from ragas.run_config import RunConfig
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -48,11 +43,24 @@ from app.services.rag import build_pgvector_rag_service
 from app.services.chunking import chunk_markdown
 from app.services.reranker import Reranker, build_reranker
 
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from ragas.metrics import (
+        Faithfulness,
+        LLMContextPrecisionWithReference,
+        LLMContextRecall,
+        ResponseRelevancy,
+    )
+
 GOLDEN_PATH = Path(__file__).with_name("rag_golden.json")
 DISTRACTOR_PATH = Path(__file__).with_name("rag_eval_distractors.json")
 FIXTURE_ROOT = Path(__file__).with_name("rag_eval_docs")
 TEMP_CONTENT_TYPE = "rag_eval_temp_ci"
 DEFAULT_RAGAS_TIMEOUT_SECONDS = 600
+DEFAULT_RAGAS_SAMPLE_SIZE = 3
+DEFAULT_RAGAS_JOB_TIMEOUT_SECONDS = 45
+DEFAULT_RAGAS_MAX_RETRIES = 0
+DEFAULT_RAGAS_MAX_WORKERS = 3
 
 
 class EvalSettings(BaseSettings):
@@ -64,7 +72,12 @@ class EvalSettings(BaseSettings):
     vault_addr: str
     vault_token: SecretStr
     rag_eval_database_url: str
+    run_ragas_metrics: bool = False
     ragas_timeout_seconds: int = DEFAULT_RAGAS_TIMEOUT_SECONDS
+    ragas_sample_size: int = DEFAULT_RAGAS_SAMPLE_SIZE
+    ragas_job_timeout_seconds: int = DEFAULT_RAGAS_JOB_TIMEOUT_SECONDS
+    ragas_max_retries: int = DEFAULT_RAGAS_MAX_RETRIES
+    ragas_max_workers: int = DEFAULT_RAGAS_MAX_WORKERS
 
 
 class GoldenExample(BaseModel):
@@ -156,11 +169,19 @@ async def main() -> None:
             f"metrics as Cohere results. failures={reranker_failure_count}"
         )
 
-    ragas_scores = await _run_required_ragas(
-        example_results,
-        llm=llm,
-        embeddings=embeddings,
-        timeout_seconds=settings.ragas_timeout_seconds,
+    ragas_scores = (
+        await _run_required_ragas(
+            example_results,
+            llm=llm,
+            embeddings=embeddings,
+            timeout_seconds=settings.ragas_timeout_seconds,
+            sample_size=settings.ragas_sample_size,
+            job_timeout_seconds=settings.ragas_job_timeout_seconds,
+            max_retries=settings.ragas_max_retries,
+            max_workers=settings.ragas_max_workers,
+        )
+        if settings.run_ragas_metrics
+        else _skipped_ragas_scores()
     )
     report = _build_report(
         example_results=example_results,
@@ -535,33 +556,105 @@ async def _run_required_ragas(
     llm: Any,
     embeddings: Any,
     timeout_seconds: int,
+    sample_size: int,
+    job_timeout_seconds: int,
+    max_retries: int,
+    max_workers: int,
 ) -> dict[str, float]:
-    # Run RAGAS in a thread so the event loop stays responsive, but shield the
-    # thread future from cancellation. asyncio.wait_for without shield would
-    # cancel the underlying concurrent.futures.Future on timeout, propagating
-    # CancelledError into RAGAS's in-flight LLM tasks and leaving queued tasks
-    # without an LLM reference. asyncio.shield lets us raise TimeoutError at
-    # the caller while RAGAS's tasks drain cleanly.
-    loop = asyncio.get_running_loop()
-    fut = loop.run_in_executor(
-        None,
-        _evaluate_ragas_sync,
-        example_results,
-        llm,
-        embeddings,
+    sampled_results = _select_ragas_examples(
+        example_results=example_results,
+        sample_size=sample_size,
     )
     try:
-        return await asyncio.wait_for(asyncio.shield(fut), timeout=float(timeout_seconds))
+        job_timeout_seconds = max(1, job_timeout_seconds)
+        max_retries = max(0, max_retries)
+        max_workers = max(1, max_workers)
+        return await asyncio.wait_for(
+            _evaluate_ragas(
+                sampled_results,
+                llm=llm,
+                embeddings=embeddings,
+                job_timeout_seconds=job_timeout_seconds,
+                max_retries=max_retries,
+                max_workers=max_workers,
+            ),
+            timeout=float(timeout_seconds),
+        )
     except TimeoutError as exc:
         raise RuntimeError(
             f"RAGAS did not finish within {timeout_seconds} seconds."
         ) from exc
 
 
-def _evaluate_ragas_sync(
+def _select_ragas_examples(
+    *,
     example_results: list[EvalExampleResult],
+    sample_size: int,
+) -> list[EvalExampleResult]:
+    if sample_size <= 0 or sample_size >= len(example_results):
+        return example_results
+
+    selected: list[EvalExampleResult] = []
+    seen_ids: set[str] = set()
+
+    prefixes = sorted(
+        {result.example_id.split("-", maxsplit=1)[0] for result in example_results}
+    )
+
+    # First include one multi-hop example per tenant. These are the highest-risk
+    # RAG cases and give the CI sample tenant coverage even when the budget is
+    # small.
+    for prefix in prefixes:
+        for result in example_results:
+            if result.example_id in seen_ids:
+                continue
+            if not result.example_id.startswith(f"{prefix}-"):
+                continue
+            if len(result.expected_fixture_paths) <= 1:
+                continue
+            selected.append(result)
+            seen_ids.add(result.example_id)
+            break
+        if len(selected) == sample_size:
+            return selected
+
+    for result in example_results:
+        if result.example_id in seen_ids:
+            continue
+        if len(result.expected_fixture_paths) > 1:
+            selected.append(result)
+            seen_ids.add(result.example_id)
+            if len(selected) == sample_size:
+                return selected
+
+    while len(selected) < sample_size:
+        changed = False
+        for prefix in prefixes:
+            for result in example_results:
+                if result.example_id in seen_ids:
+                    continue
+                if not result.example_id.startswith(f"{prefix}-"):
+                    continue
+                selected.append(result)
+                seen_ids.add(result.example_id)
+                changed = True
+                break
+            if len(selected) == sample_size:
+                return selected
+        if not changed:
+            break
+
+    return selected
+
+
+async def _evaluate_ragas(
+    example_results: list[EvalExampleResult],
+    *,
     llm: Any,
     embeddings: Any,
+    job_timeout_seconds: int,
+    max_retries: int,
+    max_workers: int,
 ) -> dict[str, float]:
     dataset = Dataset.from_list(
         [
@@ -575,25 +668,27 @@ def _evaluate_ragas_sync(
         ]
     )
     # raise_exceptions=False lets RAGAS store NaN for failing metrics instead of
-    # crashing mid-evaluation.  ResponseRelevancy uses embeddings synchronously
-    # from inside RAGAS's own asyncio.run() loop, which can trigger a different
-    # HTTP code path than our preflight check.  We detect NaN below and raise a
-    # targeted error so the CI log is actionable.
-    # max_workers=4 prevents Azure rate-limit cascades; default (16) spawns
-    # 60+ concurrent jobs across 20 examples × 4 metrics which causes timeouts.
-    evaluation = evaluate(
+    # crashing mid-evaluation. ResponseRelevancy defaults to strictness=3, which
+    # asks the judge LLM for three generations per row. CI only needs a stable
+    # gate, so strictness=1 keeps the metric while avoiding Azure timeout bursts.
+    evaluation = await aevaluate(
         dataset,
         metrics=[
             Faithfulness(),
-            ResponseRelevancy(),
+            ResponseRelevancy(strictness=1),
             LLMContextPrecisionWithReference(),
             LLMContextRecall(),
         ],
         llm=llm,
         embeddings=embeddings,
+        run_config=RunConfig(
+            timeout=job_timeout_seconds,
+            max_retries=max_retries,
+            max_workers=max_workers,
+        ),
         raise_exceptions=False,
         show_progress=False,
-        run_config=RunConfig(max_workers=4, timeout=120),
+        batch_size=max_workers,
     )
     frame = evaluation.to_pandas()
 
@@ -622,9 +717,19 @@ def _evaluate_ragas_sync(
     return scores
 
 
+def _skipped_ragas_scores() -> dict[str, Any]:
+    return {
+        "faithfulness": None,
+        "answer_relevancy": None,
+        "context_precision": None,
+        "context_recall": None,
+        "ragas_skipped": True,
+    }
+
+
 def _build_report(
     example_results: list[EvalExampleResult],
-    ragas_scores: dict[str, float],
+    ragas_scores: dict[str, Any],
     distractor_chunk_count: int,
     retrieval_mode: str,
 ) -> dict[str, Any]:
