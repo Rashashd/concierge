@@ -287,7 +287,45 @@ Side effects: writes one row to `audit_logs` with `action = 'conversation.escala
 
 ---
 
-## 5. Eval Thresholds
+## 5. Streamlit Admin UI
+
+The admin UI is a Streamlit application (`streamlit/`) that provides browser-based management for both platform operators and tenant administrators. It runs on port 8501 and authenticates against the backend JWT endpoints — no separate auth system.
+
+### Authentication
+
+The UI calls `POST /auth/login` with username/password and stores the access token in `st.session_state`. On any `401` response the session is cleared and the user is redirected to the login page. Token expiry is handled transparently.
+
+### Pages by role
+
+**Tenant Manager** (`tenant_manager` role):
+
+| Page | What it does |
+|---|---|
+| Tenants | List all tenants with status badges; suspend / unsuspend actions |
+| Create Tenant | Form to provision a new tenant (name + slug); slug uniqueness validated client-side |
+| Audit Log | Paginated read-only view of all `audit_logs` entries across all tenants |
+| Health | One-click backend `/healthz` and guardrails `/healthz` checks; results persist in session |
+| NeMo Guardrails | Per-tenant cost summary (token counts by date range) |
+| Widget Embed | Generate and display the embed `<script>` snippet for any tenant |
+| Connection Settings | Update backend URL without restarting (stored in `st.session_state`) |
+
+**Tenant Admin** (`tenant_admin` role):
+
+| Page | What it does |
+|---|---|
+| Persona & Guardrails | Edit `llm_persona` and `guardrail_config` (blocked topics, tone) for the admin's own tenant; unsaved-changes warning |
+| Content | Full CRUD for `content_items` with pagination; create/edit triggers reindexing into pgvector; delete removes chunks and MinIO blob |
+| Leads | Paginated read-only view of captured leads for the admin's own tenant |
+| Escalations | Read-only view of escalation audit log entries for the admin's own tenant |
+| Embed Snippet | Display the widget embed script for the admin's own tenant |
+
+### Access control
+
+The UI enforces role-based page visibility: a `tenant_admin` user sees only tenant-admin pages; a `tenant_manager` sees only platform pages. The backend enforces the same roles on every API call — the UI restriction is convenience, not a security boundary.
+
+---
+
+## 6. Eval Thresholds
 
 Committed in `ci/eval_thresholds.yaml`. Values below are placeholders — tighten as real numbers land during the week. Lowering a threshold requires a one-line justification in `docs/DECISIONS.md`.
 

@@ -1,0 +1,18 @@
+Week 8 - Concierge  -  Team: Racha Chamseddine, Hadi Mahdi and Hussein Shiri
+Repo: https://github.com/Rashashd/concierge            Tag: v0.1.0-week8
+Tenants seeded: 2   Isolation: RLS + repo-layer + tenant-filtered pgvector
+Roles: tenant_manager (platform) | tenant_admin | member   -   no content RLS bypass
+Classifier task: intent routing (spam | question | lead | escalate)   data: SMS Spam Collection + CLINC150/clinc_oos collapsed
+Classifier - ML F1=0.9432 | DL(ONNX) F1=0.9627 | LLM F1=0.7830   ships: classical TF-IDF+LR — close to DL quality, 3x faster, no training deps in container
+Model served: sklearn/joblib   artifact SHA-256 pinned in model card
+Agent tools: rag_search | capture_lead | escalate
+Routing: workflow handled ~38% of turns | agent handled ~62%  (cost saved: spam/lead/escalate skip full RAG+LLM call)
+RAG - chunking: full-document single chunk (title+body)  improvement: LLM reranker + hybrid pgvector+FTS  hit@5=1.00  faithfulness=0.9832
+Embedding model: text-embedding-3-small, Azure OpenAI (hosted API)
+Guardrails sidecar: NeMo  -  rails: input + output + topical (blocked_topics) + jailbreak/injection detection
+Widget auth: signed per-widget token + server-side origin check  (CORS/CSP = depth)
+Service-to-service auth: service token from Vault
+Redis short-term TTL: 7200s (2h)  -  covers a typical browsing session; short enough to bound PII retention
+Tracing backend: LangSmith (disabled by default, LANGCHAIN_TRACING_V2=false)    Widget bundle size: 47 KB gzipped
+LLM: Azure OpenAI — gpt-4o-mini
+Docs: DESIGN.md, SPEC.md, DECISIONS.md, RUNBOOK.md, EVALS.md, SECURITY.md, COLLABORATION.md
