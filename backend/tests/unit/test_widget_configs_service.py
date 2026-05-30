@@ -100,7 +100,11 @@ async def test_upsert_does_not_call_create_when_updating(monkeypatch) -> None:
     )
 
     await upsert_widget_config(
-        _mock_session(), tenant_id=uuid4(), greeting="G", theme_color="#000", enabled_tools=[]
+        _mock_session(),
+        tenant_id=uuid4(),
+        greeting="G",
+        theme_color="#000",
+        enabled_tools=[],
     )
 
     create_mock.assert_not_called()

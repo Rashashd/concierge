@@ -53,7 +53,9 @@ async def test_get_audit_log_with_emails_pairs_entries_with_emails(monkeypatch) 
 
 
 @pytest.mark.asyncio
-async def test_get_audit_log_with_emails_uses_none_for_unknown_actor(monkeypatch) -> None:
+async def test_get_audit_log_with_emails_uses_none_for_unknown_actor(
+    monkeypatch,
+) -> None:
     entry = _fake_entry()
     monkeypatch.setattr(
         "app.services.tenants.audit_repo.list_all", AsyncMock(return_value=[entry])
@@ -86,13 +88,17 @@ async def test_get_audit_log_with_emails_returns_empty_list(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
-async def test_full_delete_tenant_calls_erase_then_deletes_users_and_tenant(monkeypatch) -> None:
+async def test_full_delete_tenant_calls_erase_then_deletes_users_and_tenant(
+    monkeypatch,
+) -> None:
     tenant_id = uuid4()
     erase_mock = AsyncMock()
     delete_users_mock = AsyncMock()
     delete_tenant_mock = AsyncMock()
     monkeypatch.setattr("app.services.tenants.erase_tenant", erase_mock)
-    monkeypatch.setattr("app.services.tenants.user_repo.delete_by_tenant", delete_users_mock)
+    monkeypatch.setattr(
+        "app.services.tenants.user_repo.delete_by_tenant", delete_users_mock
+    )
     monkeypatch.setattr("app.services.tenants.tenant_repo.delete", delete_tenant_mock)
 
     await full_delete_tenant(

@@ -45,7 +45,9 @@ async def create_content(
         content_type=body.content_type,
     )
     await indexing.index_content(
-        session, embeddings, minio,
+        session,
+        embeddings,
+        minio,
         tenant_id=user.tenant_id,  # type: ignore[arg-type]
         content_id=item.id,
         title=item.title,
@@ -109,7 +111,9 @@ async def update_content(
             detail="Content item not found",
         )
     await indexing.index_content(
-        session, embeddings, minio,
+        session,
+        embeddings,
+        minio,
         tenant_id=user.tenant_id,  # type: ignore[arg-type]
         content_id=item.id,
         title=item.title,
@@ -136,7 +140,9 @@ async def delete_content(
 ) -> None:
     # Chunks must be deleted before the content item (no FK cascade in the model).
     await chunk_repo.delete_by_content_item(
-        session, user.tenant_id, content_id  # type: ignore[arg-type]
+        session,
+        user.tenant_id,
+        content_id,  # type: ignore[arg-type]
     )
     deleted = await content_repo.delete_by_id(
         session=session,

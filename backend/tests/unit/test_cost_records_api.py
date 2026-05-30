@@ -29,10 +29,18 @@ async def test_get_tenant_cost_returns_totals_for_date_range(monkeypatch) -> Non
     end = date(2025, 1, 31)
     monkeypatch.setattr(
         "app.api.cost_records.cost_repo.get_range_totals",
-        AsyncMock(return_value={"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}),
+        AsyncMock(
+            return_value={
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+                "total_tokens": 150,
+            }
+        ),
     )
 
-    result = await get_tenant_cost(tenant_id, _manager(), AsyncMock(), start_day=start, end_day=end)
+    result = await get_tenant_cost(
+        tenant_id, _manager(), AsyncMock(), start_day=start, end_day=end
+    )
 
     assert result.tenant_id == tenant_id
     assert result.start_day == start
@@ -46,7 +54,9 @@ async def test_get_tenant_cost_returns_totals_for_date_range(monkeypatch) -> Non
 async def test_get_tenant_cost_raises_400_when_end_before_start() -> None:
     with pytest.raises(HTTPException) as exc_info:
         await get_tenant_cost(
-            uuid4(), _manager(), AsyncMock(),
+            uuid4(),
+            _manager(),
+            AsyncMock(),
             start_day=date(2025, 1, 31),
             end_day=date(2025, 1, 1),
         )
@@ -62,7 +72,9 @@ async def test_get_tenant_cost_defaults_to_today_when_no_dates(monkeypatch) -> N
         AsyncMock(return_value=_zero_totals()),
     )
 
-    result = await get_tenant_cost(uuid4(), _manager(), AsyncMock(), start_day=None, end_day=None)
+    result = await get_tenant_cost(
+        uuid4(), _manager(), AsyncMock(), start_day=None, end_day=None
+    )
 
     assert result.start_day == today
     assert result.end_day == today

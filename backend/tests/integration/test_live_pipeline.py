@@ -120,6 +120,7 @@ async def client():
 
     # Clear the lru_cache so Settings() picks up the env vars set above.
     from app.core.config import get_settings
+
     get_settings.cache_clear()
 
     app = create_app()
@@ -134,7 +135,10 @@ async def client():
     async def _send(message: dict) -> None:
         await from_app.put(message)
 
-    lifespan_scope = {"type": "lifespan", "asgi": {"version": "3.0", "spec_version": "2.0"}}
+    lifespan_scope = {
+        "type": "lifespan",
+        "asgi": {"version": "3.0", "spec_version": "2.0"},
+    }
     lifespan_task = asyncio.create_task(app(lifespan_scope, _receive, _send))
 
     await to_app.put({"type": "lifespan.startup"})
@@ -205,7 +209,11 @@ async def two_tenants(client: httpx.AsyncClient):
         assert r.status_code == 201, f"Widget config failed: {r.text}"
         widget_id: str = r.json()["widget_id"]
 
-        return {"tenant_id": tenant_id, "widget_id": widget_id, "admin_token": admin_token}
+        return {
+            "tenant_id": tenant_id,
+            "widget_id": widget_id,
+            "admin_token": admin_token,
+        }
 
     health = await _provision(
         name=f"ZephyrClinic-{_RUN_ID}",
@@ -246,11 +254,13 @@ async def test_health_tenant_retrieves_own_rag_content(
 ) -> None:
     """Health tenant gets an answer that contains its own fictional medical terms."""
     token = await _get_widget_token(client, two_tenants["health"]["widget_id"])
-    answer = await _chat(client, token, "What diagnostic services does ZephyrClinic offer?")
-    lower = answer.lower()
-    assert "cryowave" in lower or "spectromorphic" in lower or "neuropaediatrics" in lower, (
-        f"Expected ZephyrClinic-specific terms in answer but got:\n{answer}"
+    answer = await _chat(
+        client, token, "What diagnostic services does ZephyrClinic offer?"
     )
+    lower = answer.lower()
+    assert (
+        "cryowave" in lower or "spectromorphic" in lower or "neuropaediatrics" in lower
+    ), f"Expected ZephyrClinic-specific terms in answer but got:\n{answer}"
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -278,9 +288,15 @@ async def test_health_tenant_cannot_see_edu_content(
     token = await _get_widget_token(client, two_tenants["health"]["widget_id"])
     answer = await _chat(client, token, "What academic subjects are available here?")
     lower = answer.lower()
-    assert "ferrobiotics" not in lower, f"EDU term 'ferrobiotics' leaked into health answer:\n{answer}"
-    assert "paleocybernetics" not in lower, f"EDU term 'paleocybernetics' leaked into health answer:\n{answer}"
-    assert "exocosmology" not in lower, f"EDU term 'exocosmology' leaked into health answer:\n{answer}"
+    assert "ferrobiotics" not in lower, (
+        f"EDU term 'ferrobiotics' leaked into health answer:\n{answer}"
+    )
+    assert "paleocybernetics" not in lower, (
+        f"EDU term 'paleocybernetics' leaked into health answer:\n{answer}"
+    )
+    assert "exocosmology" not in lower, (
+        f"EDU term 'exocosmology' leaked into health answer:\n{answer}"
+    )
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -293,9 +309,15 @@ async def test_edu_tenant_cannot_see_health_content(
     token = await _get_widget_token(client, two_tenants["edu"]["widget_id"])
     answer = await _chat(client, token, "What health services are available here?")
     lower = answer.lower()
-    assert "cryowave" not in lower, f"Health term 'cryowave' leaked into edu answer:\n{answer}"
-    assert "spectromorphic" not in lower, f"Health term 'spectromorphic' leaked into edu answer:\n{answer}"
-    assert "neuropaediatrics" not in lower, f"Health term 'neuropaediatrics' leaked into edu answer:\n{answer}"
+    assert "cryowave" not in lower, (
+        f"Health term 'cryowave' leaked into edu answer:\n{answer}"
+    )
+    assert "spectromorphic" not in lower, (
+        f"Health term 'spectromorphic' leaked into edu answer:\n{answer}"
+    )
+    assert "neuropaediatrics" not in lower, (
+        f"Health term 'neuropaediatrics' leaked into edu answer:\n{answer}"
+    )
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -336,8 +358,12 @@ async def test_separate_sessions_stored_in_redis_under_different_keys(
     session_a = "integ-session-a"
     session_b = "integ-session-b"
 
-    token_a = await _get_widget_token(client, two_tenants["health"]["widget_id"], session_a)
-    token_b = await _get_widget_token(client, two_tenants["edu"]["widget_id"], session_b)
+    token_a = await _get_widget_token(
+        client, two_tenants["health"]["widget_id"], session_a
+    )
+    token_b = await _get_widget_token(
+        client, two_tenants["edu"]["widget_id"], session_b
+    )
 
     await _chat(client, token_a, "What services do you offer?")
     await _chat(client, token_b, "What courses do you have?")
@@ -400,7 +426,9 @@ async def test_presidio_redacts_phone_number_before_storage(
 
     raw_phone = "+1-800-555-0199"
     session_id = f"redact-{uuid4().hex[:6]}"
-    token = await _get_widget_token(client, two_tenants["health"]["widget_id"], session_id)
+    token = await _get_widget_token(
+        client, two_tenants["health"]["widget_id"], session_id
+    )
     await _chat(client, token, f"Call me at {raw_phone} about my appointment.")
 
     settings = get_settings()
@@ -509,7 +537,9 @@ async def test_guardrails_blocks_prompt_injection_attempt(
     by the guardrails service before any LLM call is made.
     """
     session_id = f"inject-{uuid4().hex[:6]}"
-    token = await _get_widget_token(client, two_tenants["health"]["widget_id"], session_id)
+    token = await _get_widget_token(
+        client, two_tenants["health"]["widget_id"], session_id
+    )
 
     # This matches INJECTION_PATTERNS[0]: \bignore\b.*\bprevious\b.*\binstructions?\b
     r = await client.post(
@@ -529,4 +559,6 @@ async def test_guardrails_blocks_prompt_injection_attempt(
         or "cannot" in answer
         or "sorry" in answer
         or "not allowed" in answer
-    ), f"Expected guardrail refusal for prompt injection but got: {r.json()['answer']!r}"
+    ), (
+        f"Expected guardrail refusal for prompt injection but got: {r.json()['answer']!r}"
+    )

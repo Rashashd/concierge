@@ -29,7 +29,9 @@ def _embeddings_no_fn() -> MagicMock:
 async def test_embed_item_skips_when_no_embed_fn(monkeypatch) -> None:
     delete_mock = AsyncMock()
     create_mock = AsyncMock()
-    monkeypatch.setattr("app.services.indexing.chunk_repo.delete_by_content_item", delete_mock)
+    monkeypatch.setattr(
+        "app.services.indexing.chunk_repo.delete_by_content_item", delete_mock
+    )
     monkeypatch.setattr("app.services.indexing.chunk_repo.create_bulk", create_mock)
 
     await _embed_item(_session(), _embeddings_no_fn(), uuid4(), uuid4(), "T", "B")
@@ -44,11 +46,15 @@ async def test_embed_item_deletes_old_chunks_then_creates_new(monkeypatch) -> No
     vectors = [[0.1, 0.2]]
     delete_mock = AsyncMock()
     create_mock = AsyncMock()
-    monkeypatch.setattr("app.services.indexing.chunk_repo.delete_by_content_item", delete_mock)
+    monkeypatch.setattr(
+        "app.services.indexing.chunk_repo.delete_by_content_item", delete_mock
+    )
     monkeypatch.setattr("app.services.indexing.chunk_repo.create_bulk", create_mock)
     session = _session()
 
-    await _embed_item(session, _embeddings(vectors), tenant_id, content_id, "Title", "Body")
+    await _embed_item(
+        session, _embeddings(vectors), tenant_id, content_id, "Title", "Body"
+    )
 
     delete_mock.assert_awaited_once_with(session, tenant_id, content_id)
     create_mock.assert_awaited_once()
@@ -68,7 +74,9 @@ async def test_embed_item_concatenates_title_and_body(monkeypatch) -> None:
 
     embeddings = MagicMock()
     embeddings.aembed_documents = fake_embed
-    monkeypatch.setattr("app.services.indexing.chunk_repo.delete_by_content_item", AsyncMock())
+    monkeypatch.setattr(
+        "app.services.indexing.chunk_repo.delete_by_content_item", AsyncMock()
+    )
     monkeypatch.setattr("app.services.indexing.chunk_repo.create_bulk", AsyncMock())
 
     await _embed_item(_session(), embeddings, uuid4(), uuid4(), "My Title", "My Body")
@@ -84,12 +92,20 @@ async def test_index_content_writes_minio_blob(monkeypatch) -> None:
     tenant_id, content_id = uuid4(), uuid4()
     minio = MagicMock()
     minio.put_content = AsyncMock()
-    monkeypatch.setattr("app.services.indexing.chunk_repo.delete_by_content_item", AsyncMock())
+    monkeypatch.setattr(
+        "app.services.indexing.chunk_repo.delete_by_content_item", AsyncMock()
+    )
     monkeypatch.setattr("app.services.indexing.chunk_repo.create_bulk", AsyncMock())
 
     await index_content(
-        _session(), _embeddings(), minio,
-        tenant_id, content_id, "Title", "Body", "faq",
+        _session(),
+        _embeddings(),
+        minio,
+        tenant_id,
+        content_id,
+        "Title",
+        "Body",
+        "faq",
     )
 
     minio.put_content.assert_awaited_once()
@@ -112,7 +128,9 @@ async def test_index_content_calls_embed_after_minio(monkeypatch) -> None:
         call_order.append("delete_chunks")
 
     minio.put_content = fake_put
-    monkeypatch.setattr("app.services.indexing.chunk_repo.delete_by_content_item", fake_delete)
+    monkeypatch.setattr(
+        "app.services.indexing.chunk_repo.delete_by_content_item", fake_delete
+    )
     monkeypatch.setattr("app.services.indexing.chunk_repo.create_bulk", AsyncMock())
 
     await index_content(
@@ -134,7 +152,8 @@ async def test_reindex_tenant_embeds_all_items(monkeypatch) -> None:
         type("Item", (), {"id": uuid4(), "title": "T2", "body": "B2"})(),
     ]
     monkeypatch.setattr(
-        "app.services.indexing.content_repo.list_by_tenant", AsyncMock(return_value=items)
+        "app.services.indexing.content_repo.list_by_tenant",
+        AsyncMock(return_value=items),
     )
     embed_calls: list[tuple] = []
 

@@ -93,7 +93,9 @@ def _item(tenant_id: object) -> ContentItem:
 
 
 @pytest.mark.asyncio
-async def test_smoke_create_content_persists_item_with_correct_tenant(monkeypatch) -> None:
+async def test_smoke_create_content_persists_item_with_correct_tenant(
+    monkeypatch,
+) -> None:
     user = _admin()
     session = FakeSession()
     monkeypatch.setattr("app.api.content.indexing.index_content", AsyncMock())

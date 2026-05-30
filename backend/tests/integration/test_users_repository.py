@@ -68,7 +68,9 @@ async def test_get_emails_by_ids_maps_id_to_email() -> None:
     r2 = type("Row", (), {"id": uid2, "email": "b@b.com"})()
     session = FakeSession(rows=[r1, r2])
 
-    result = await users_repo.get_emails_by_ids(cast(AsyncSession, session), {uid1, uid2})
+    result = await users_repo.get_emails_by_ids(
+        cast(AsyncSession, session), {uid1, uid2}
+    )
 
     assert result[uid1] == "a@a.com"
     assert result[uid2] == "b@b.com"
@@ -83,7 +85,9 @@ async def test_list_by_tenant_returns_users_for_tenant() -> None:
     u = _fake_user(tenant_id)
     session = FakeSession(rows=[u])
 
-    result = await users_repo.list_by_tenant(cast(AsyncSession, session), tenant_id=tenant_id)
+    result = await users_repo.list_by_tenant(
+        cast(AsyncSession, session), tenant_id=tenant_id
+    )
 
     assert result == [u]
 
@@ -91,7 +95,9 @@ async def test_list_by_tenant_returns_users_for_tenant() -> None:
 @pytest.mark.asyncio
 async def test_list_by_tenant_returns_empty_list_when_none() -> None:
     session = FakeSession(rows=[])
-    result = await users_repo.list_by_tenant(cast(AsyncSession, session), tenant_id=uuid4())
+    result = await users_repo.list_by_tenant(
+        cast(AsyncSession, session), tenant_id=uuid4()
+    )
     assert result == []
 
 
