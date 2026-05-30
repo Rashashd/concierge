@@ -20,11 +20,26 @@ Run:
 
 from __future__ import annotations
 
+import socket
 from uuid import uuid4
 
 import httpx
 import pytest
 import pytest_asyncio
+
+
+def _vault_reachable() -> bool:
+    try:
+        with socket.create_connection(("localhost", 8200), timeout=2):
+            return True
+    except OSError:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _vault_reachable(),
+    reason="Vault not reachable at localhost:8200 — run with docker-compose stack",
+)
 
 _RUN_ID = uuid4().hex[:8]
 
