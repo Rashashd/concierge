@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 SESSION_KEY_PREFIX = "session"
 DEFAULT_SESSION_TTL_SECONDS = 24 * 60 * 60
-DEFAULT_MAX_HISTORY_MESSAGES = 20
+DEFAULT_MAX_HISTORY_MESSAGES = 200
 
 
 class RedisMemoryClient(Protocol):
@@ -78,8 +78,9 @@ async def load_history(
         raise ValueError("max_messages must be greater than zero.")
 
     key = build_session_key(tenant_id=tenant_id, session_id=session_id)
-    raw_messages = await redis.lrange(key, -max_messages, -1)
-    return [_decode_message(raw_message) for raw_message in raw_messages]
+    raw_messages = await redis.lrange(key, 0, -1)
+    messages = [_decode_message(raw_message) for raw_message in raw_messages]
+    return messages[-max_messages:]
 
 
 async def delete_tenant_sessions(

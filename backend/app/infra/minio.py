@@ -5,6 +5,7 @@ Erasure deletes the entire prefix.
 """
 
 import asyncio
+import json
 from uuid import UUID
 
 import boto3
@@ -30,6 +31,37 @@ class MinioClient:
 
     def tenant_prefix(self, tenant_id: UUID) -> str:
         return f"tenants/{tenant_id}/"
+
+    def _content_key(self, tenant_id: UUID, content_id: UUID) -> str:
+        return f"tenants/{tenant_id}/content/{content_id}.json"
+
+    async def put_content(
+        self,
+        tenant_id: UUID,
+        content_id: UUID,
+        payload: dict,
+    ) -> None:
+        """Write a content item blob under tenants/{tenant_id}/content/{id}.json."""
+        key = self._content_key(tenant_id, content_id)
+        body = json.dumps(payload, default=str).encode()
+        await asyncio.to_thread(
+            self._s3.put_object,
+            Bucket=self._bucket,
+            Key=key,
+            Body=body,
+            ContentType="application/json",
+        )
+        logger.info("minio.content_put", key=key)
+
+    async def delete_content(self, tenant_id: UUID, content_id: UUID) -> None:
+        """Delete a single content item blob."""
+        key = self._content_key(tenant_id, content_id)
+        await asyncio.to_thread(
+            self._s3.delete_object,
+            Bucket=self._bucket,
+            Key=key,
+        )
+        logger.info("minio.content_deleted", key=key)
 
     async def delete_tenant_prefix(self, tenant_id: UUID) -> int:
         """Delete all objects under tenants/{tenant_id}/. Returns count deleted."""

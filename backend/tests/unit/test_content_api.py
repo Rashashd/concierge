@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -6,6 +6,8 @@ from fastapi import HTTPException
 
 from app.api.content import router
 from app.schemas import ContentCreate, ContentUpdate, UserContext
+
+# Route order: [0] reindex, [1] create, [2] list, [3] update, [4] delete
 
 
 def _make_admin_context() -> UserContext:
@@ -38,7 +40,7 @@ def _fake_item(
 
 
 @pytest.mark.asyncio
-async def test_create_content_uses_admin_tenant_id() -> None:
+async def test_create_content_uses_admin_tenant_id(monkeypatch) -> None:
     admin = _make_admin_context()
     item_id = uuid4()
     item = _fake_item(item_id, admin.tenant_id)
@@ -47,24 +49,20 @@ async def test_create_content_uses_admin_tenant_id() -> None:
         assert tenant_id == admin.tenant_id
         return item
 
+    monkeypatch.setattr("app.api.content.indexing.index_content", AsyncMock())
+
     with (
-        patch(
-            "app.api.content.content_repo.create",
-            side_effect=fake_create,
-        ),
-        patch(
-            "app.api.content.get_admin_tenant_session",
-            AsyncMock(return_value=AsyncMock()),
-        ),
+        patch("app.api.content.content_repo.create", side_effect=fake_create),
+        patch("app.api.content.get_admin_tenant_session", AsyncMock(return_value=AsyncMock())),
     ):
-        body = ContentCreate(
-            title="FAQ Item", body="This is the answer.", content_type="faq"
-        )
-        coro = router.routes[0].endpoint  # type: ignore[attr-defined]
+        body = ContentCreate(title="FAQ Item", body="This is the answer.", content_type="faq")
+        coro = router.routes[1].endpoint  # type: ignore[attr-defined]
         result = await coro(
             body=body,
             user=admin,
             session=AsyncMock(),
+            embeddings=AsyncMock(),
+            minio=MagicMock(put_content=AsyncMock()),
         )
         assert result.id == item_id
         assert result.title == "Test FAQ"
@@ -80,96 +78,67 @@ async def test_list_content_filters_by_admin_tenant() -> None:
         return [_fake_item(item_id, admin.tenant_id)]
 
     with (
-        patch(
-            "app.api.content.content_repo.list_by_tenant",
-            side_effect=fake_list,
-        ),
-        patch(
-            "app.api.content.get_admin_tenant_session",
-            AsyncMock(return_value=AsyncMock()),
-        ),
+        patch("app.api.content.content_repo.list_by_tenant", side_effect=fake_list),
+        patch("app.api.content.get_admin_tenant_session", AsyncMock(return_value=AsyncMock())),
     ):
-        coro = router.routes[1].endpoint  # type: ignore[attr-defined]
-        result = await coro(
-            user=admin,
-            session=AsyncMock(),
-        )
+        coro = router.routes[2].endpoint  # type: ignore[attr-defined]
+        result = await coro(user=admin, session=AsyncMock())
         assert len(result) == 1
         assert result[0].id == item_id
 
 
 @pytest.mark.asyncio
-async def test_update_content_uses_admin_tenant() -> None:
+async def test_update_content_uses_admin_tenant(monkeypatch) -> None:
     admin = _make_admin_context()
     item_id = uuid4()
 
-    async def fake_update(
-        *,
-        session,
-        tenant_id,
-        content_id,
-        title,
-        body,
-        content_type,
-    ) -> object:
+    async def fake_update(*, session, tenant_id, content_id, title, body, content_type) -> object:
         assert tenant_id == admin.tenant_id
         assert content_id == item_id
         return _fake_item(item_id, admin.tenant_id, title=title or "Updated")
 
+    monkeypatch.setattr("app.api.content.indexing.index_content", AsyncMock())
+
     with (
-        patch(
-            "app.api.content.content_repo.update",
-            side_effect=fake_update,
-        ),
-        patch(
-            "app.api.content.get_admin_tenant_session",
-            AsyncMock(return_value=AsyncMock()),
-        ),
+        patch("app.api.content.content_repo.update", side_effect=fake_update),
+        patch("app.api.content.get_admin_tenant_session", AsyncMock(return_value=AsyncMock())),
     ):
         body = ContentUpdate(title="Updated FAQ")
-        coro = router.routes[2].endpoint  # type: ignore[attr-defined]
+        coro = router.routes[3].endpoint  # type: ignore[attr-defined]
         result = await coro(
             content_id=item_id,
             body=body,
             user=admin,
             session=AsyncMock(),
+            embeddings=AsyncMock(),
+            minio=MagicMock(put_content=AsyncMock()),
         )
         assert result.title == "Updated FAQ"
 
 
 @pytest.mark.asyncio
-async def test_update_content_404_when_missing() -> None:
+async def test_update_content_404_when_missing(monkeypatch) -> None:
     admin = _make_admin_context()
 
-    async def fake_update(
-        *,
-        session,
-        tenant_id,
-        content_id,
-        title,
-        body,
-        content_type,
-    ) -> None:
+    async def fake_update(*, session, tenant_id, content_id, title, body, content_type) -> None:
         return None
 
+    monkeypatch.setattr("app.api.content.indexing.index_content", AsyncMock())
+
     with (
-        patch(
-            "app.api.content.content_repo.update",
-            side_effect=fake_update,
-        ),
-        patch(
-            "app.api.content.get_admin_tenant_session",
-            AsyncMock(return_value=AsyncMock()),
-        ),
+        patch("app.api.content.content_repo.update", side_effect=fake_update),
+        patch("app.api.content.get_admin_tenant_session", AsyncMock(return_value=AsyncMock())),
     ):
         body = ContentUpdate(title="Updated")
-        coro = router.routes[2].endpoint  # type: ignore[attr-defined]
+        coro = router.routes[3].endpoint  # type: ignore[attr-defined]
         with pytest.raises(HTTPException) as exc_info:
             await coro(
                 content_id=uuid4(),
                 body=body,
                 user=admin,
                 session=AsyncMock(),
+                embeddings=AsyncMock(),
+                minio=MagicMock(put_content=AsyncMock()),
             )
         assert exc_info.value.status_code == 404
 
@@ -185,20 +154,16 @@ async def test_delete_content_uses_admin_tenant() -> None:
         return True
 
     with (
-        patch(
-            "app.api.content.content_repo.delete_by_id",
-            side_effect=fake_delete,
-        ),
-        patch(
-            "app.api.content.get_admin_tenant_session",
-            AsyncMock(return_value=AsyncMock()),
-        ),
+        patch("app.api.content.content_repo.delete_by_id", side_effect=fake_delete),
+        patch("app.api.content.chunk_repo.delete_by_content_item", AsyncMock(return_value=0)),
+        patch("app.api.content.get_admin_tenant_session", AsyncMock(return_value=AsyncMock())),
     ):
-        coro = router.routes[3].endpoint  # type: ignore[attr-defined]
+        coro = router.routes[4].endpoint  # type: ignore[attr-defined]
         result = await coro(
             content_id=item_id,
             user=admin,
             session=AsyncMock(),
+            minio=MagicMock(delete_content=AsyncMock()),
         )
         assert result is None
 
@@ -211,20 +176,16 @@ async def test_delete_content_404_when_missing() -> None:
         return False
 
     with (
-        patch(
-            "app.api.content.content_repo.delete_by_id",
-            side_effect=fake_delete,
-        ),
-        patch(
-            "app.api.content.get_admin_tenant_session",
-            AsyncMock(return_value=AsyncMock()),
-        ),
+        patch("app.api.content.content_repo.delete_by_id", side_effect=fake_delete),
+        patch("app.api.content.chunk_repo.delete_by_content_item", AsyncMock(return_value=0)),
+        patch("app.api.content.get_admin_tenant_session", AsyncMock(return_value=AsyncMock())),
     ):
-        coro = router.routes[3].endpoint  # type: ignore[attr-defined]
+        coro = router.routes[4].endpoint  # type: ignore[attr-defined]
         with pytest.raises(HTTPException) as exc_info:
             await coro(
                 content_id=uuid4(),
                 user=admin,
                 session=AsyncMock(),
+                minio=MagicMock(delete_content=AsyncMock()),
             )
         assert exc_info.value.status_code == 404

@@ -103,7 +103,7 @@ async def run_agent_turn(
         state["messages"] = (await tool_node(state))["messages"]
 
     if session is not None:
-        from app.services.cost import extract_turn_cost, record_turn_cost
+        from app.services.cost_records import extract_turn_cost, record_turn_cost
 
         model_name = getattr(llm, "model_name", getattr(llm, "model", "unknown"))
         cost = extract_turn_cost(

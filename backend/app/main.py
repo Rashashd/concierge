@@ -2,6 +2,7 @@
 
 import structlog
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.lifespan import lifespan
@@ -12,10 +13,19 @@ logger = structlog.get_logger(__name__)
 def create_app() -> FastAPI:
     app = FastAPI(title="Concierge API", version="0.1.0", lifespan=lifespan)
 
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # lazy imports to avoid circular imports
+    from app.api.audit_log import router as audit_log_router
     from app.api.auth import router as auth_router
     from app.api.chat import router as chat_router
     from app.api.content import router as content_router
+    from app.api.cost_records import router as cost_records_router
     from app.api.escalations import router as escalations_router
     from app.api.leads import router as leads_router
     from app.api.tenants import router as tenants_router
@@ -23,6 +33,8 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(tenants_router)
+    app.include_router(audit_log_router)
+    app.include_router(cost_records_router)
     app.include_router(content_router)
     app.include_router(chat_router)
     app.include_router(leads_router)

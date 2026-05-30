@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Academy Portal Online University</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1a1a2e;
+      background: #f8fafc;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; color: #4F46E5; }
+    .logo-icon {
+      width: 36px; height: 36px; background: #4F46E5; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; font-weight: 800;
+    }
+    nav ul { list-style: none; display: flex; gap: 32px; }
+    nav ul a { text-decoration: none; color: #4a5568; font-size: 0.92rem; font-weight: 500; }
+    nav ul a:hover { color: #4F46E5; }
+    .nav-cta {
+      background: #4F46E5; color: white; padding: 8px 20px; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 600; text-decoration: none;
+    }
+    .nav-cta:hover { background: #3730A3; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #312E81 0%, #4F46E5 55%, #7C3AED 100%);
+      color: white;
+      padding: 96px 5% 88px;
+    }
+    .hero-inner { max-width: 680px; }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 22px;
+    }
+    .hero h1 { font-size: 3rem; font-weight: 900; line-height: 1.15; margin-bottom: 20px; }
+    .hero h1 span { color: #a5b4fc; }
+    .hero p { font-size: 1.1rem; opacity: 0.87; line-height: 1.7; margin-bottom: 40px; max-width: 520px; }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 56px; }
+    .btn-primary {
+      background: white; color: #4F46E5; padding: 13px 30px;
+      border-radius: 8px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+    }
+    .btn-primary:hover { background: #f0f0ff; }
+    .btn-outline {
+      border: 2px solid rgba(255,255,255,0.55); color: white; padding: 13px 30px;
+      border-radius: 8px; font-weight: 600; font-size: 0.95rem; text-decoration: none;
+      background: transparent;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.1); }
+    .hero-stats { display: flex; gap: 40px; flex-wrap: wrap; }
+    .stat { }
+    .stat-num { font-size: 2rem; font-weight: 800; }
+    .stat-label { font-size: 0.78rem; opacity: 0.7; margin-top: 2px; }
+
+    /* ── Notice bar ── */
+    .notice-bar {
+      background: #EEF2FF; border-bottom: 1px solid #C7D2FE;
+      padding: 10px 5%; text-align: center; font-size: 0.88rem; color: #3730A3; font-weight: 500;
+    }
+    .notice-bar a { color: #4F46E5; font-weight: 700; }
+
+    /* ── Section ── */
+    section { padding: 72px 5%; }
+    .section-label {
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #4F46E5; margin-bottom: 10px;
+    }
+    h2 { font-size: 2rem; font-weight: 800; margin-bottom: 14px; }
+    .section-sub { color: #64748b; font-size: 1rem; line-height: 1.7; max-width: 600px; margin-bottom: 48px; }
+
+    /* ── Programs ── */
+    .programs { background: white; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .prog-card {
+      border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px;
+      background: white; transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .prog-card:hover { box-shadow: 0 8px 24px rgba(79,70,229,0.12); border-color: #a5b4fc; }
+    .prog-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      background: #EEF2FF; display: flex; align-items: center;
+      justify-content: center; font-size: 1.4rem; margin-bottom: 16px;
+    }
+    .prog-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .prog-card p { font-size: 0.88rem; color: #64748b; line-height: 1.6; margin-bottom: 14px; }
+    .prog-tag {
+      display: inline-block; background: #EEF2FF; color: #4F46E5;
+      font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+    }
+
+    /* ── Info strip ── */
+    .info-strip {
+      background: #EEF2FF; border-top: 1px solid #C7D2FE; border-bottom: 1px solid #C7D2FE;
+      padding: 32px 5%; display: flex; gap: 40px; justify-content: space-around; flex-wrap: wrap;
+    }
+    .info-item { display: flex; align-items: flex-start; gap: 14px; }
+    .info-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .info-item h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; color: #1a1a2e; }
+    .info-item p { font-size: 0.82rem; color: #4a5568; }
+
+    /* ── Why us ── */
+    .why { background: #f8fafc; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .why-card {
+      background: white; border-radius: 12px; padding: 28px;
+      border-left: 4px solid #4F46E5;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .why-card h3 { font-weight: 700; margin-bottom: 8px; font-size: 1rem; }
+    .why-card p { font-size: 0.87rem; color: #64748b; line-height: 1.6; }
+
+    /* ── CTA banner ── */
+    .cta-banner {
+      background: linear-gradient(135deg, #312E81, #4F46E5);
+      color: white; text-align: center; padding: 72px 5%;
+    }
+    .cta-banner h2 { color: white; margin-bottom: 12px; font-size: 2rem; }
+    .cta-banner p { opacity: 0.85; margin-bottom: 36px; font-size: 1rem; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+    /* ── Footer ── */
+    footer {
+      background: #1e293b; color: #94a3b8; padding: 40px 5%;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    }
+    footer .logo { color: white; }
+    footer p { font-size: 0.85rem; }
+
+    @media (max-width: 768px) {
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2.2rem; }
+      nav ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Notice bar -->
+<div class="notice-bar">
+  🎓 Semester 1 2026 applications open now — <a href="#">Apply before 31 January</a>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">AP</div>
+    Academy Portal
+  </div>
+  <ul>
+    <li><a href="#">Home</a></li>
+    <li><a href="#">Programs</a></li>
+    <li><a href="#">Admissions</a></li>
+    <li><a href="#">Scholarships</a></li>
+    <li><a href="#">Student Life</a></li>
+  </ul>
+  <a href="#" class="nav-cta">Apply Now</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">TEQSA Registered · 5-Star Online University</div>
+    <h1>Learn <span>Without</span><br>Limits</h1>
+    <p>100% online, fully accredited degrees that fit around your life. 80+ programs. 22,000+ students. Join from anywhere in Australia — or the world.</p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary">Explore Programs</a>
+      <a href="#" class="btn-outline">Talk to an Advisor</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-num">80+</div><div class="stat-label">Accredited Programs</div></div>
+      <div class="stat"><div class="stat-num">22k+</div><div class="stat-label">Students Enrolled</div></div>
+      <div class="stat"><div class="stat-num">120+</div><div class="stat-label">Scholarships/year</div></div>
+      <div class="stat"><div class="stat-num">91%</div><div class="stat-label">Graduate Employment</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Programs -->
+<section class="programs">
+  <div class="section-label">What We Offer</div>
+  <h2>Programs for Every Career Path</h2>
+  <p class="section-sub">From Bachelor's to Master's — choose a program that matches your goals and study at your own pace.</p>
+  <div class="grid-3">
+    <div class="prog-card">
+      <div class="prog-icon">💻</div>
+      <h3>Computer Science & Data</h3>
+      <p>AI, Machine Learning, Cybersecurity, Data Engineering — ACS-accredited programs for the future of tech.</p>
+      <span class="prog-tag">Bachelor's · Master's</span>
+    </div>
+    <div class="prog-card">
+      <div class="prog-icon">📊</div>
+      <h3>Business & Management</h3>
+      <p>MBA, BBA, Accounting, Marketing, and Financial Planning — AACSB-recognised, with a 800+ alumni mentor network.</p>
+      <span class="prog-tag">Bachelor's · MBA · GradCert</span>
+    </div>
+    <div class="prog-card">
+      <div class="prog-icon">⚖️</div>
+      <h3>Law & Social Justice</h3>
+      <p>Study Australian and international law, human rights, and social policy with Westlaw database access included.</p>
+      <span class="prog-tag">Bachelor's · Graduate Diploma</span>
+    </div>
+    <div class="prog-card">
+      <div class="prog-icon">🎓</div>
+      <h3>Education & Teaching</h3>
+      <p>Qualify as a primary or secondary teacher, or advance your career with a Graduate Certificate in Educational Leadership.</p>
+      <span class="prog-tag">Bachelor's · GradCert</span>
+    </div>
+    <div class="prog-card">
+      <div class="prog-icon">🎨</div>
+      <h3>Creative Arts & Design</h3>
+      <p>Graphic design, UX/UI, digital media, and creative writing — build a portfolio with real industry briefs.</p>
+      <span class="prog-tag">Bachelor's · GradDip</span>
+    </div>
+    <div class="prog-card">
+      <div class="prog-icon">🏥</div>
+      <h3>Health Sciences</h3>
+      <p>Public health, health administration, and community wellbeing programs — no clinical placement required.</p>
+      <span class="prog-tag">Bachelor's · Master's</span>
+    </div>
+  </div>
+</section>
+
+<!-- Info strip -->
+<div class="info-strip">
+  <div class="info-item">
+    <div class="info-icon">📅</div>
+    <div>
+      <h4>Two Intakes Per Year</h4>
+      <p>Semester 1: February · Semester 2: July<br>Apply up to 10 business days before start</p>
+    </div>
+  </div>
+  <div class="info-item">
+    <div class="info-icon">💰</div>
+    <div>
+      <h4>HECS-HELP Available</h4>
+      <p>Defer tuition for eligible domestic students<br>Pay nothing upfront</p>
+    </div>
+  </div>
+  <div class="info-item">
+    <div class="info-icon">🕐</div>
+    <div>
+      <h4>Study Your Way</h4>
+      <p>LMS available 24/7 · Digital library always on<br>Student Services Mon–Sat</p>
+    </div>
+  </div>
+  <div class="info-item">
+    <div class="info-icon">📞</div>
+    <div>
+      <h4>Talk to Us</h4>
+      <p>1800-ACADEMY<br>studentservices@academyportal.edu.au</p>
+    </div>
+  </div>
+</div>
+
+<!-- Why Academy Portal -->
+<section class="why">
+  <div class="section-label">Why Academy Portal</div>
+  <h2>Built for Working Adults</h2>
+  <p class="section-sub">We designed every aspect of our university around the realities of people who work, have families, and can't put their lives on hold.</p>
+  <div class="grid-2">
+    <div class="why-card">
+      <h3>Credit Recognition</h3>
+      <p>Up to 50% of your degree may be granted for prior study or work experience. Don't repeat what you already know — get credit for it.</p>
+    </div>
+    <div class="why-card">
+      <h3>Academic Success Coaching</h3>
+      <p>Free 1:1 sessions with coaches who help with study skills, time management, and academic writing — because returning to study is a skill.</p>
+    </div>
+    <div class="why-card">
+      <h3>Industry Capstone Projects</h3>
+      <p>In your final year, work on a real brief with an industry partner. Our 2024 grads report this as the single biggest factor in landing their next role.</p>
+    </div>
+    <div class="why-card">
+      <h3>Disability and Access Support</h3>
+      <p>Reasonable adjustments for students with a documented disability or mental health condition — extensions, alternative formats, assistive technology.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-banner">
+  <h2>Your Next Chapter Starts Here</h2>
+  <p>Apply for Semester 1 2026, explore scholarships, or chat with Alex — our AI student advisor — for instant answers.</p>
+  <a href="#" class="btn-primary">Apply Now — Free Application</a>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="logo">
+    <div class="logo-icon">AP</div>
+    Academy Portal Online University
+  </div>
+  <p>© 2025 Academy Portal · TEQSA Registered · Privacy Policy · Student Charter</p>
+  <p>Melbourne · Sydney · Online</p>
+</footer>
+
+<!-- Concierge widget bubble -->
+<iframe id="concierge-frame"
+  src="http://localhost:5173/widget.html?apiBase=http://localhost:8000&widgetId=6717d034-c7af-43f3-a131-b7d6c3b7cc12"
+  title="Concierge chat"
+  style="display:none;position:fixed;bottom:90px;right:20px;width:min(380px,calc(100vw - 32px));height:580px;max-height:calc(100vh - 100px);border:0;border-radius:18px;z-index:2147483646;box-shadow:0 24px 70px rgba(23,29,36,0.22);"
+></iframe>
+<button id="concierge-bubble" onclick="(function(){var f=document.getElementById('concierge-frame'),b=document.getElementById('concierge-bubble');var open=f.style.display!=='none';f.style.display=open?'none':'block';b.innerHTML=open?'💬':'✕';b.title=open?'Open chat':'Close chat';})()"
+  title="Open chat"
+  style="position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#4F46E5;color:#fff;border:none;font-size:24px;cursor:pointer;z-index:2147483647;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;">💬</button>
+
+</body>
+</html>
