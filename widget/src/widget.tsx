@@ -1,16 +1,16 @@
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 
-import { ChatMessage, requestWidgetToken, sendChatMessage } from "./api";
+import { ChatMessage, fetchWidgetConfig, requestWidgetToken, sendChatMessage } from "./api";
 import "./widget.css";
 
-type WidgetConfig = {
+type UrlConfig = {
   apiBase: string;
   widgetId: string;
 };
 
-function readWidgetConfig(): WidgetConfig {
+function readWidgetConfig(): UrlConfig {
   const params = new URLSearchParams(window.location.search);
   const apiBase = params.get("apiBase") ?? window.location.origin;
   const widgetId = params.get("widgetId") ?? "";
@@ -39,12 +39,15 @@ function ConciergeWidget(): ReactElement {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      text: "Hi. Ask a question and I will search this business's content."
-    }
+    { id: "welcome", role: "assistant", text: "Hi, how can I help you?" }
   ]);
+
+  useEffect(() => {
+    fetchWidgetConfig(config.apiBase, config.widgetId).then((wc) => {
+      setMessages([{ id: "welcome", role: "assistant", text: wc.greeting }]);
+      document.documentElement.style.setProperty("--widget-accent", wc.theme_color);
+    });
+  }, [config.apiBase, config.widgetId]);
 
   async function ensureToken(): Promise<string> {
     if (tokenRef.current) {

@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from app.services.cost import TurnCost, extract_turn_cost
+from app.services.cost_records import TurnCost, extract_turn_cost
 
 
 def test_sums_tokens_across_multiple_ai_messages() -> None:

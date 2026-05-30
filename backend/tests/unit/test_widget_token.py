@@ -1,7 +1,7 @@
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 from pydantic import SecretStr, ValidationError
 
 from app.api.widget import issue_token
@@ -44,19 +44,23 @@ def test_widget_token_request_rejects_tenant_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_widget_token_endpoint_uses_configured_tenant_id() -> None:
+async def test_widget_token_endpoint_uses_resolved_tenant_id() -> None:
     tenant_id = uuid4()
     widget_id = uuid4()
     settings = Settings(
         **VAULT_DEFAULTS,
         widget_token_secret=SecretStr(TEST_SECRET),
-        dev_widget_tenant_id=tenant_id,
     )
 
-    response = await issue_token(
-        request=WidgetTokenRequest(widget_id=widget_id, session_id="session-1"),
-        settings=settings,
-    )
+    with patch(
+        "app.api.widget.widget_service.resolve_widget_tenant",
+        AsyncMock(return_value=tenant_id),
+    ):
+        response = await issue_token(
+            request=WidgetTokenRequest(widget_id=widget_id, session_id="session-1"),
+            settings=settings,
+            session=AsyncMock(),
+        )
 
     tenant_context = verify_widget_token(response.access_token, TEST_SECRET)
     assert tenant_context.tenant_id == tenant_id
@@ -65,13 +69,22 @@ async def test_widget_token_endpoint_uses_configured_tenant_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_widget_token_endpoint_requires_tenant_lookup() -> None:
-    settings = Settings(**VAULT_DEFAULTS, widget_token_secret=SecretStr(TEST_SECRET))
+async def test_widget_token_endpoint_falls_back_to_widget_id_when_no_config() -> None:
+    widget_id = uuid4()
+    settings = Settings(
+        **VAULT_DEFAULTS,
+        widget_token_secret=SecretStr(TEST_SECRET),
+    )
 
-    with pytest.raises(HTTPException) as exc_info:
-        await issue_token(
-            request=WidgetTokenRequest(widget_id=uuid4(), session_id="session-1"),
+    with patch(
+        "app.api.widget.widget_service.resolve_widget_tenant",
+        AsyncMock(return_value=widget_id),  # fallback: no config found
+    ):
+        response = await issue_token(
+            request=WidgetTokenRequest(widget_id=widget_id, session_id="session-1"),
             settings=settings,
+            session=AsyncMock(),
         )
 
-    assert exc_info.value.status_code == 503
+    tenant_context = verify_widget_token(response.access_token, TEST_SECRET)
+    assert tenant_context.tenant_id == widget_id

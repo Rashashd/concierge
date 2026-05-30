@@ -57,3 +57,34 @@ async def get_daily_totals(
         "completion_tokens": int(row.completion_tokens),
         "total_tokens": int(row.total_tokens),
     }
+
+
+async def get_range_totals(
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    start_day: date,
+    end_day: date,
+) -> dict[str, int]:
+    """Return summed token counts for a tenant over an inclusive date range (UTC)."""
+    range_start = datetime(start_day.year, start_day.month, start_day.day, tzinfo=UTC)
+    _end_dt = datetime(end_day.year, end_day.month, end_day.day, tzinfo=UTC)
+    range_end = _end_dt + timedelta(days=1)
+    result = await session.execute(
+        select(
+            func.coalesce(func.sum(CostRecord.prompt_tokens), 0).label("prompt_tokens"),
+            func.coalesce(func.sum(CostRecord.completion_tokens), 0).label(
+                "completion_tokens"
+            ),
+            func.coalesce(func.sum(CostRecord.total_tokens), 0).label("total_tokens"),
+        ).where(
+            CostRecord.tenant_id == tenant_id,
+            CostRecord.recorded_at >= range_start,
+            CostRecord.recorded_at < range_end,
+        )
+    )
+    row = result.one()
+    return {
+        "prompt_tokens": int(row.prompt_tokens),
+        "completion_tokens": int(row.completion_tokens),
+        "total_tokens": int(row.total_tokens),
+    }

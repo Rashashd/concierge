@@ -30,6 +30,32 @@ async def list_escalations_by_tenant(
     return list(result.scalars().all())
 
 
+async def list_all(
+    session: AsyncSession,
+    *,
+    limit: int = 100,
+) -> list[AuditLog]:
+    result = await session.execute(
+        select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def list_by_tenant(
+    session: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    limit: int = 100,
+) -> list[AuditLog]:
+    result = await session.execute(
+        select(AuditLog)
+        .where(AuditLog.tenant_id == tenant_id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
 async def create(
     session: AsyncSession,
     *,

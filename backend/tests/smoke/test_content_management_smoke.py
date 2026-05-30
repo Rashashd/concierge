@@ -6,6 +6,7 @@ Verifies the full create → list → update → delete lifecycle without a live
 
 from datetime import UTC, datetime
 from typing import cast
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -92,14 +93,19 @@ def _item(tenant_id: object) -> ContentItem:
 
 
 @pytest.mark.asyncio
-async def test_smoke_create_content_persists_item_with_correct_tenant() -> None:
+async def test_smoke_create_content_persists_item_with_correct_tenant(
+    monkeypatch,
+) -> None:
     user = _admin()
     session = FakeSession()
+    monkeypatch.setattr("app.api.content.indexing.index_content", AsyncMock())
 
     result = await create_content(
         ContentCreate(title="FAQ", body="Open 9-5.", content_type="faq"),
         user,
         cast(AsyncSession, session),
+        AsyncMock(),
+        MagicMock(delete_content=AsyncMock()),
     )
 
     assert result.title == "FAQ"
@@ -123,17 +129,19 @@ async def test_smoke_list_content_returns_tenant_items() -> None:
 
 
 @pytest.mark.asyncio
-async def test_smoke_update_content_applies_change() -> None:
+async def test_smoke_update_content_applies_change(monkeypatch) -> None:
     user = _admin()
     item = _item(user.tenant_id)
-    # get_by_id calls execute once
     session = FakeSession(results=[FakeResult(rows=[item])])
+    monkeypatch.setattr("app.api.content.indexing.index_content", AsyncMock())
 
     result = await update_content(
         item.id,  # type: ignore[arg-type]
         ContentUpdate(title="Updated FAQ", body=None, content_type=None),
         user,
         cast(AsyncSession, session),
+        AsyncMock(),
+        MagicMock(delete_content=AsyncMock()),
     )
 
     assert result.title == "Updated FAQ"
@@ -141,9 +149,10 @@ async def test_smoke_update_content_applies_change() -> None:
 
 
 @pytest.mark.asyncio
-async def test_smoke_update_content_raises_404_when_item_not_found() -> None:
+async def test_smoke_update_content_raises_404_when_item_not_found(monkeypatch) -> None:
     user = _admin()
     session = FakeSession(results=[FakeResult(rows=[])])
+    monkeypatch.setattr("app.api.content.indexing.index_content", AsyncMock())
 
     with pytest.raises(HTTPException) as exc_info:
         await update_content(
@@ -151,6 +160,8 @@ async def test_smoke_update_content_raises_404_when_item_not_found() -> None:
             ContentUpdate(title="X", body=None, content_type=None),
             user,
             cast(AsyncSession, session),
+            AsyncMock(),
+            MagicMock(delete_content=AsyncMock()),
         )
 
     assert exc_info.value.status_code == 404
@@ -159,10 +170,11 @@ async def test_smoke_update_content_raises_404_when_item_not_found() -> None:
 @pytest.mark.asyncio
 async def test_smoke_delete_content_returns_none_on_success() -> None:
     user = _admin()
-    # delete_by_id returns rowcount=1 (deleted)
-    session = FakeSession(results=[FakeResult(rowcount=1)])
+    # First execute: chunk delete (rowcount ignored). Second: content delete (rowcount=1).
+    session = FakeSession(results=[FakeResult(rowcount=0), FakeResult(rowcount=1)])
+    minio = MagicMock(delete_content=AsyncMock())
 
-    result = await delete_content(uuid4(), user, cast(AsyncSession, session))
+    result = await delete_content(uuid4(), user, cast(AsyncSession, session), minio)
 
     assert result is None
 
@@ -170,9 +182,10 @@ async def test_smoke_delete_content_returns_none_on_success() -> None:
 @pytest.mark.asyncio
 async def test_smoke_delete_content_raises_404_when_not_found() -> None:
     user = _admin()
-    session = FakeSession(results=[FakeResult(rowcount=0)])
+    session = FakeSession(results=[FakeResult(rowcount=0), FakeResult(rowcount=0)])
+    minio = MagicMock(delete_content=AsyncMock())
 
     with pytest.raises(HTTPException) as exc_info:
-        await delete_content(uuid4(), user, cast(AsyncSession, session))
+        await delete_content(uuid4(), user, cast(AsyncSession, session), minio)
 
     assert exc_info.value.status_code == 404

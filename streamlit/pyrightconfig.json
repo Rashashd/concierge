@@ -1,0 +1,9 @@
+{
+  "include": ["."],
+  "extraPaths": ["."],
+  "reportMissingImports": true,
+  "reportMissingModuleSource": false,
+  "reportAttributeAccessIssue": "none",
+  "reportUnknownMemberType": "none",
+  "reportGeneralTypeIssues": "none"
+}

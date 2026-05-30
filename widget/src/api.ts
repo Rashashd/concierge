@@ -1,3 +1,22 @@
+export type WidgetConfig = {
+  widget_id: string;
+  greeting: string;
+  theme_color: string;
+};
+
+export async function fetchWidgetConfig(
+  apiBase: string,
+  widgetId: string
+): Promise<WidgetConfig> {
+  try {
+    const response = await fetch(`${apiBase}/widget/config?widget_id=${widgetId}`);
+    if (!response.ok) throw new Error("config fetch failed");
+    return (await response.json()) as WidgetConfig;
+  } catch {
+    return { widget_id: widgetId, greeting: "Hi, how can I help you?", theme_color: "#0066CC" };
+  }
+}
+
 export type ChatMessage = {
   id: string;
   role: "assistant" | "visitor";

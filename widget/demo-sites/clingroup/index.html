@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinGroup Medical Centre</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1a1a2e;
+      background: #f8fafc;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; color: #0B5394; }
+    .logo-icon {
+      width: 36px; height: 36px; background: #0B5394; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem;
+    }
+    nav ul { list-style: none; display: flex; gap: 32px; }
+    nav ul a { text-decoration: none; color: #4a5568; font-size: 0.92rem; font-weight: 500; }
+    nav ul a:hover { color: #0B5394; }
+    .nav-cta {
+      background: #0B5394; color: white; padding: 8px 20px; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 600; text-decoration: none;
+    }
+    .nav-cta:hover { background: #084177; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0B5394 0%, #1a73c4 60%, #3b9ddd 100%);
+      color: white;
+      padding: 88px 5% 80px;
+      display: flex;
+      align-items: center;
+      gap: 60px;
+    }
+    .hero-text { flex: 1; }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: white;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 { font-size: 2.8rem; font-weight: 800; line-height: 1.2; margin-bottom: 20px; }
+    .hero p { font-size: 1.1rem; opacity: 0.88; line-height: 1.7; max-width: 520px; margin-bottom: 36px; }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn-primary {
+      background: white; color: #0B5394; padding: 12px 28px;
+      border-radius: 8px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+      border: none; cursor: pointer;
+    }
+    .btn-primary:hover { background: #f0f7ff; }
+    .btn-outline {
+      border: 2px solid rgba(255,255,255,0.6); color: white; padding: 12px 28px;
+      border-radius: 8px; font-weight: 600; font-size: 0.95rem; text-decoration: none;
+      background: transparent;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.12); }
+    .hero-stats { flex-shrink: 0; display: flex; gap: 32px; }
+    .stat { text-align: center; }
+    .stat-num { font-size: 2.2rem; font-weight: 800; }
+    .stat-label { font-size: 0.8rem; opacity: 0.75; margin-top: 2px; }
+
+    /* ── Urgency banner ── */
+    .urgency {
+      background: #dc2626; color: white;
+      text-align: center; padding: 12px;
+      font-size: 0.9rem; font-weight: 600;
+    }
+    .urgency a { color: white; }
+
+    /* ── Section ── */
+    section { padding: 72px 5%; }
+    .section-label {
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #0B5394; margin-bottom: 10px;
+    }
+    h2 { font-size: 2rem; font-weight: 800; margin-bottom: 14px; }
+    .section-sub { color: #64748b; font-size: 1rem; line-height: 1.7; max-width: 600px; margin-bottom: 48px; }
+
+    /* ── Services grid ── */
+    .services { background: white; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .card {
+      border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px;
+      background: white; transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .card:hover { box-shadow: 0 8px 24px rgba(11,83,148,0.1); border-color: #93c5fd; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      background: #dbeafe; display: flex; align-items: center;
+      justify-content: center; font-size: 1.4rem; margin-bottom: 16px;
+    }
+    .card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .card p { font-size: 0.88rem; color: #64748b; line-height: 1.6; }
+
+    /* ── Info strip ── */
+    .info-strip {
+      background: #eff6ff; border-top: 1px solid #bfdbfe; border-bottom: 1px solid #bfdbfe;
+      padding: 32px 5%; display: flex; gap: 40px; justify-content: space-around; flex-wrap: wrap;
+    }
+    .info-item { display: flex; align-items: flex-start; gap: 14px; }
+    .info-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .info-item h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
+    .info-item p { font-size: 0.82rem; color: #4a5568; }
+
+    /* ── Departments ── */
+    .dept-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .dept-card {
+      border-left: 4px solid #0B5394; padding: 20px 24px;
+      background: white; border-radius: 0 10px 10px 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .dept-card h3 { font-weight: 700; margin-bottom: 6px; font-size: 1rem; }
+    .dept-card p { font-size: 0.85rem; color: #64748b; line-height: 1.55; }
+
+    /* ── CTA banner ── */
+    .cta-banner {
+      background: linear-gradient(135deg, #0B5394, #1a73c4);
+      color: white; text-align: center; padding: 64px 5%;
+    }
+    .cta-banner h2 { color: white; margin-bottom: 12px; }
+    .cta-banner p { opacity: 0.85; margin-bottom: 32px; font-size: 1rem; }
+
+    /* ── Footer ── */
+    footer {
+      background: #1e293b; color: #94a3b8; padding: 40px 5%;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    }
+    footer .logo { color: white; }
+    footer p { font-size: 0.85rem; }
+
+    @media (max-width: 768px) {
+      .hero { flex-direction: column; }
+      .hero-stats { justify-content: center; }
+      .grid-3, .dept-grid { grid-template-columns: 1fr; }
+      nav ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Urgency banner -->
+<div class="urgency">
+  ⚠️ Medical emergency? Call <strong>000</strong> — or visit our Urgent Care Unit, Level 1, open 6 AM – midnight, 7 days.
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">✚</div>
+    ClinGroup
+  </div>
+  <ul>
+    <li><a href="#">Home</a></li>
+    <li><a href="#">Services</a></li>
+    <li><a href="#">Departments</a></li>
+    <li><a href="#">Telehealth</a></li>
+    <li><a href="#">About</a></li>
+  </ul>
+  <a href="#" class="nav-cta">Book Appointment</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-text">
+    <div class="hero-badge">AGPAL Accredited · Bulk Billing Available</div>
+    <h1>Your Health,<br>Our Priority</h1>
+    <p>Integrated healthcare across 35 specialties, all under one roof. Three campuses serving metropolitan patients since 2004.</p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary">Book an Appointment</a>
+      <a href="#" class="btn-outline">Telehealth Consult</a>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">80k+</div><div class="stat-label">Active Patients</div></div>
+    <div class="stat"><div class="stat-num">200+</div><div class="stat-label">Clinicians</div></div>
+    <div class="stat"><div class="stat-num">35</div><div class="stat-label">Specialties</div></div>
+  </div>
+</section>
+
+<!-- Info strip -->
+<div class="info-strip">
+  <div class="info-item">
+    <div class="info-icon">🕐</div>
+    <div>
+      <h4>Opening Hours</h4>
+      <p>Mon–Fri 7 AM–8 PM · Sat 8 AM–5 PM<br>Urgent Care: 6 AM–midnight, 7 days</p>
+    </div>
+  </div>
+  <div class="info-item">
+    <div class="info-icon">📞</div>
+    <div>
+      <h4>Contact Us</h4>
+      <p>1800-CLIN-GRP<br>appointments@clingroup.com</p>
+    </div>
+  </div>
+  <div class="info-item">
+    <div class="info-icon">💳</div>
+    <div>
+      <h4>Bulk Billing</h4>
+      <p>Medicare, all major private health funds<br>WorkCover · DVA · NDIS</p>
+    </div>
+  </div>
+  <div class="info-item">
+    <div class="info-icon">🖥️</div>
+    <div>
+      <h4>Telehealth</h4>
+      <p>Video consults with GPs & specialists<br>Daily 7 AM–10 PM</p>
+    </div>
+  </div>
+</div>
+
+<!-- Services -->
+<section class="services">
+  <div class="section-label">What We Offer</div>
+  <h2>Comprehensive Healthcare Services</h2>
+  <p class="section-sub">From routine check-ups to complex specialist care — everything you need in one place.</p>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-icon">🩺</div>
+      <h3>General Practice</h3>
+      <p>Comprehensive primary care including routine check-ups, chronic disease management, health assessments, and preventive care for all ages.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">❤️</div>
+      <h3>Cardiology</h3>
+      <p>ECG, echocardiography, Holter monitoring, coronary angiography, and cardiac rehabilitation programs with CSANZ-certified consultants.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🧠</div>
+      <h3>Mental Health</h3>
+      <p>Individual therapy, CBT, trauma care, group programs, and psychiatry. Up to 20 Medicare-subsidised sessions via Mental Health Treatment Plan.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔬</div>
+      <h3>Pathology & Imaging</h3>
+      <p>NATA-accredited lab with 2,000+ specimens daily. X-ray, ultrasound, CT, and MRI — results via secure patient portal within 24 hours.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🏃</div>
+      <h3>Physiotherapy</h3>
+      <p>Musculoskeletal, post-surgical rehab, sports injuries, chronic pain, and neurological conditions. No referral required.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💊</div>
+      <h3>Pharmacy</h3>
+      <p>Full-service on-site pharmacy. Free medication reviews for patients on 5+ regular medications. Mon–Fri 8 AM–7 PM, Sat 9 AM–4 PM.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Departments -->
+<section style="background:#f8fafc;">
+  <div class="section-label">Our Specialists</div>
+  <h2>Expert Care Across 35 Departments</h2>
+  <p class="section-sub">Our multidisciplinary teams work together to deliver the right care at the right time.</p>
+  <div class="dept-grid">
+    <div class="dept-card">
+      <h3>Cardiology</h3>
+      <p>Dr. James Osei · Dr. Priya Nair · Dr. Leon Marchetti — CSANZ Fellows</p>
+    </div>
+    <div class="dept-card">
+      <h3>Endocrinology & Diabetes</h3>
+      <p>Multidisciplinary Diabetes Care Clinic: endocrinologist, dietitian, podiatrist, diabetes educator.</p>
+    </div>
+    <div class="dept-card">
+      <h3>Paediatrics</h3>
+      <p>Well-child checks, developmental screening, immunisations, and adolescent health.</p>
+    </div>
+    <div class="dept-card">
+      <h3>Women's Health</h3>
+      <p>Cervical screening, prenatal care, menopause management, and fertility support.</p>
+    </div>
+    <div class="dept-card">
+      <h3>Orthopaedics</h3>
+      <p>Joint assessment, fracture management, and post-surgical rehabilitation in partnership with physiotherapy.</p>
+    </div>
+    <div class="dept-card">
+      <h3>Dermatology</h3>
+      <p>Skin cancer screening, mole mapping, acne and eczema management, and cosmetic procedures.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-banner">
+  <h2>Ready to Take Care of Your Health?</h2>
+  <p>Book online, call 1800-CLIN-GRP, or chat with Cleo — our AI health assistant — for instant answers.</p>
+  <a href="#" class="btn-primary">Book Appointment Online</a>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="logo">
+    <div class="logo-icon">✚</div>
+    ClinGroup Medical Centre
+  </div>
+  <p>© 2025 ClinGroup Medical Centre · Privacy Policy · Patient Charter</p>
+  <p>CBD · Northside · Eastfield</p>
+</footer>
+
+<!-- Concierge widget bubble -->
+<iframe id="concierge-frame"
+  src="http://localhost:5173/widget.html?apiBase=http://localhost:8000&widgetId=ab1dcbc2-fc1b-4302-a708-a6a83514cbd1"
+  title="Concierge chat"
+  style="display:none;position:fixed;bottom:90px;right:20px;width:min(380px,calc(100vw - 32px));height:580px;max-height:calc(100vh - 100px);border:0;border-radius:18px;z-index:2147483646;box-shadow:0 24px 70px rgba(23,29,36,0.22);"
+></iframe>
+<button id="concierge-bubble" onclick="(function(){var f=document.getElementById('concierge-frame'),b=document.getElementById('concierge-bubble');var open=f.style.display!=='none';f.style.display=open?'none':'block';b.innerHTML=open?'💬':'✕';b.title=open?'Open chat':'Close chat';})()"
+  title="Open chat"
+  style="position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#0B5394;color:#fff;border:none;font-size:24px;cursor:pointer;z-index:2147483647;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;">💬</button>
+
+</body>
+</html>

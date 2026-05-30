@@ -1,4 +1,5 @@
 :root {
+  --widget-accent: #0066CC;
   color: #1d252c;
   background: transparent;
   font-family:
@@ -72,8 +73,8 @@ textarea {
   width: 9px;
   height: 9px;
   border-radius: 999px;
-  background: #16806f;
-  box-shadow: 0 0 0 4px rgba(22, 128, 111, 0.14);
+  background: var(--widget-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--widget-accent) 20%, transparent);
 }
 
 .concierge-thread {
@@ -146,8 +147,8 @@ textarea {
 }
 
 .concierge-composer textarea:focus {
-  border-color: #16806f;
-  box-shadow: 0 0 0 3px rgba(22, 128, 111, 0.14);
+  border-color: var(--widget-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--widget-accent) 20%, transparent);
 }
 
 .concierge-composer button {
@@ -156,7 +157,7 @@ textarea {
   height: 46px;
   border: 0;
   border-radius: 8px;
-  background: #c7462b;
+  background: var(--widget-accent);
   color: #fffaf0;
   font-family:
     ui-sans-serif, "Aptos", "Segoe UI", system-ui, sans-serif;
