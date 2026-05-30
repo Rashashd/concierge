@@ -70,9 +70,12 @@ holiday schedules, and legacy platform documentation.
 | `context_precision` | RAGAS LLM context precision with reference; higher means retrieved contexts are more relevant to the reference answer. |
 | `context_recall` | RAGAS context recall; higher means retrieved contexts cover more of the reference answer. |
 
-All four RAGAS metrics (`Faithfulness`, `ResponseRelevancy`,
-`LLMContextPrecisionWithReference`, `LLMContextRecall`) always run. They are
-not optional.
+CI runs the deterministic retrieval, answer-phrase, and cross-tenant-leak checks
+on the full golden set. The hosted RAGAS judge metrics are opt-in with
+`RUN_RAGAS_METRICS=true` because the live judge calls can exceed the PR workflow
+budget. When enabled, all four RAGAS metrics (`Faithfulness`,
+`ResponseRelevancy`, `LLMContextPrecisionWithReference`, `LLMContextRecall`) run
+on a fixed representative sample of the golden set.
 
 ### Comparison Baselines for Advanced RAG
 
